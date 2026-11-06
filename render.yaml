@@ -1,0 +1,96 @@
+# Render Blueprint: tạo gateway + 4 service một lượt (New > Blueprint > chọn repo).
+# Các biến đánh dấu "sync: false" Render sẽ hỏi bạn nhập khi tạo.
+# Tên service (qr-*) phải là duy nhất trên Render; nếu bị trùng, đổi tên rồi sửa lại các biến *_URL cho khớp.
+
+envVarGroups:
+  - name: qr-shared
+    envVars:
+      - key: JWT_SECRET          # giống nhau ở cả 4 service (Render tự sinh một lần)
+        generateValue: true
+      - key: ACCOUNT_URL
+        value: https://qr-account.onrender.com
+      - key: SESSION_URL
+        value: https://qr-session.onrender.com
+      - key: ATTENDANCE_URL
+        value: https://qr-attendance.onrender.com
+      - key: STATISTICS_URL
+        value: https://qr-statistics.onrender.com
+
+services:
+  - type: web
+    name: qr-gateway
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start -w gateway
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: qr-shared
+      - key: CORS_ORIGIN          # domain frontend, vd https://diemdanh.vercel.app
+        sync: false
+
+  - type: web
+    name: qr-account
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start -w services/account-class
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: qr-shared
+      - key: DATABASE_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: TEACHER_EMAILS
+        sync: false
+      - key: ALLOW_DEV_LOGIN
+        value: "true"             # đổi thành false khi chạy thật
+
+  - type: web
+    name: qr-session
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start -w services/session-qr
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: qr-shared
+      - key: DATABASE_URL
+        sync: false
+      - key: QR_SECRET
+        generateValue: true
+
+  - type: web
+    name: qr-attendance
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start -w services/attendance
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: qr-shared
+      - key: DATABASE_URL
+        sync: false
+      - key: LATE_MINUTES
+        value: "15"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+
+  - type: web
+    name: qr-statistics
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start -w services/statistics
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: qr-shared

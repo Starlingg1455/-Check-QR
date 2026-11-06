@@ -1,0 +1,14 @@
+{
+  "name": "he-thong-diem-danh-qr",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Hệ thống điểm danh bằng mã QR - đồ án Phát triển phần mềm hướng dịch vụ",
+  "workspaces": ["gateway", "services/*", "frontend"],
+  "scripts": {
+    "dev": "concurrently -n gateway,account,session,attend,stats,web -c blue,green,yellow,magenta,cyan,white \"npm run dev -w gateway\" \"npm run dev -w services/account-class\" \"npm run dev -w services/session-qr\" \"npm run dev -w services/attendance\" \"npm run dev -w services/statistics\" \"npm run dev -w frontend\"",
+    "backend": "concurrently -n gateway,account,session,attend,stats \"npm run dev -w gateway\" \"npm run dev -w services/account-class\" \"npm run dev -w services/session-qr\" \"npm run dev -w services/attendance\" \"npm run dev -w services/statistics\"",
+    "seed": "node scripts/seed.js"
+  },
+  "devDependencies": { "concurrently": "^9.1.0" }
+}
