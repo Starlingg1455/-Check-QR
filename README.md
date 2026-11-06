@@ -70,6 +70,15 @@ mã không hợp lệ, MSSV lạ/thiếu/lặp, thiếu hoặc thừa cột bu�
 File hợp lệ sẽ cho **xem trước** các ô thay đổi, bấm áp dụng mới ghi (một câu lệnh SQL duy nhất nên không bao giờ ghi nửa chừng).
 Nút **Xuất Excel** của thống kê dùng cùng quy ước mã.
 
+### Nhập bảng điểm danh mẫu của trường
+```bash
+node scripts/import-mau-truong.mjs du-lieu-truong/<file>.xlsx [--start=2025-09-08] [--all]
+```
+Script đọc bảng điểm danh của trường (tiêu đề "HỌC PHẦN ... LỚP ...", cột Mã SV / Họ và tên / Lớp, các cột T1..Tn) rồi tạo lớp, sinh viên, các buổi và điểm danh.
+Quy ước ô: để trống = có mặt, `X` = vắng, `P` = có phép, `M` = đi muộn. Mặc định chỉ tạo các buổi đến cột cuối cùng có ghi dấu (`--all` để tạo hết).
+File mẫu không có email và ngày học nên email được tạo dạng `<MSSV>@sv.local` và ngày tính từ `--start`.
+Thư mục `du-lieu-truong/` chứa dữ liệu cá nhân thật nên đã nằm trong `.gitignore`, không được commit.
+
 ### Thử quét QR bằng điện thoại ở máy local
 Camera chỉ chạy trên HTTPS hoặc localhost. Dùng `ngrok http 5173` (hoặc Cloudflare Tunnel) rồi mở link https đó trên cả laptop và điện thoại.
 

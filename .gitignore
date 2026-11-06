@@ -3,3 +3,6 @@ node_modules
 .data
 dist
 *.log
+
+# Dữ liệu cá nhân thật của trường (họ tên, MSSV): không đưa lên git
+du-lieu-truong/
