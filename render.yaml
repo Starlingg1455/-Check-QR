@@ -10,9 +10,9 @@ envVarGroups:
       - key: ACCOUNT_URL
         value: https://qr-account.onrender.com
       - key: SESSION_URL
-        value: https://qr-session.onrender.com
+        value: https://qr-session-ucph.onrender.com
       - key: ATTENDANCE_URL
-        value: https://qr-attendance.onrender.com
+        value: https://qr-attendance-3na8.onrender.com
       - key: STATISTICS_URL
         value: https://qr-statistics.onrender.com
 
