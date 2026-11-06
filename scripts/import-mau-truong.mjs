@@ -1,6 +1,7 @@
 // Nhập bảng điểm danh mẫu của trường (file .xlsx) vào hệ thống qua API Gateway.
 //
-//   node scripts/import-mau-truong.mjs <đường-dẫn-file.xlsx> [--start=2025-09-08] [--all] [--teacher=gv@demo.vn]
+//   node scripts/import-mau-truong.mjs <file.xlsx> [--start=YYYY-MM-DD] [--time=HH:MM] [--room=M-M7.03]
+//        [--teacher=gv@demo.vn] [--teacher-name="Họ tên"] [--semester="HK1 2025-2026"] [--all]
 //
 // Cấu trúc file được nhận diện tự động:
 //   - Dòng tiêu đề "BẢNG ĐIỂM DANH ... HỌC PHẦN <tên> - LỚP <mã>"   => tên môn + mã lớp
@@ -11,7 +12,7 @@
 //   - Mặc định chỉ tạo các buổi đến cột cuối cùng có ghi dấu; dùng --all để tạo tất cả các cột
 //
 // Lưu ý: file mẫu không có email và không có ngày, nên email được tạo dạng <MSSV>@sv.local và
-// ngày học tính từ --start (mặc định thứ Hai 2025-09-08, mỗi buổi cách nhau một tuần).
+// ngày học tính từ --start (ngày của Buổi 1) và --time (giờ bắt đầu), mỗi buổi cách nhau một tuần.
 // File chứa dữ liệu cá nhân thật: để trong thư mục du-lieu-truong/ (đã nằm trong .gitignore), đừng commit.
 import ExcelJS from 'exceljs';
 
@@ -23,7 +24,10 @@ if (!file) { console.error('Cách dùng: node scripts/import-mau-truong.mjs <fil
 
 // ---- Quy ước mã trong ô của file mẫu ----
 const CODE_TO_STATUS = { '': 'present', X: 'absent', P: 'excused', M: 'late' };
-const START = new Date(`${opt('start', '2025-09-08')}T07:30:00`);
+const START = new Date(`${opt('start', '2025-09-08')}T${opt('time', '07:30')}:00`); // ngày + giờ của Buổi 1
+const ROOM = opt('room', '');
+const TEACHER_NAME = opt('teacher-name', '');
+const SEMESTER = opt('semester', '');
 const ALL = args.includes('--all');
 const TEACHER = opt('teacher', 'gv@demo.vn');
 
@@ -114,7 +118,7 @@ async function call(path, { token, method = 'GET', body, form } = {}) {
   return data;
 }
 
-const login = await call('/account/auth/dev-login', { method: 'POST', body: { email: TEACHER, role: 'teacher' } });
+const login = await call('/account/auth/dev-login', { method: 'POST', body: { email: TEACHER, role: 'teacher', ...(TEACHER_NAME ? { name: TEACHER_NAME } : {}) } });
 const T = login.token;
 
 const existing = await call('/account/classes', { token: T });
@@ -125,7 +129,7 @@ if (existing.some((c) => c.code === classCode)) {
 
 const cls = await call('/account/classes', {
   token: T, method: 'POST',
-  body: { code: classCode, name: courseName, semester: batch ? `Đợt ${batch} - HK1 2025-2026` : 'HK1 2025-2026', totalSessions: sessionCols.length, maxAbsentPercent: 20 },
+  body: { code: classCode, name: courseName, room: ROOM || undefined, semester: SEMESTER || (batch ? `Đợt ${batch}` : ''), totalSessions: sessionCols.length, maxAbsentPercent: 20 },
 });
 
 // sinh viên: dùng chính chức năng import Excel của hệ thống (kiểm tra luôn đường nhập này với dữ liệu thật)

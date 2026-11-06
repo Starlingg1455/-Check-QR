@@ -72,11 +72,11 @@ Nút **Xuất Excel** của thống kê dùng cùng quy ước mã.
 
 ### Nhập bảng điểm danh mẫu của trường
 ```bash
-node scripts/import-mau-truong.mjs du-lieu-truong/<file>.xlsx [--start=2025-09-08] [--all]
+node scripts/import-mau-truong.mjs du-lieu-truong/<file>.xlsx --start=2025-08-28 --time=12:30 --room=M-M7.03 --semester="HK1 2025-2026" [--teacher-name="Họ tên"] [--all]
 ```
 Script đọc bảng điểm danh của trường (tiêu đề "HỌC PHẦN ... LỚP ...", cột Mã SV / Họ và tên / Lớp, các cột T1..Tn) rồi tạo lớp, sinh viên, các buổi và điểm danh.
 Quy ước ô: để trống = có mặt, `X` = vắng, `P` = có phép, `M` = đi muộn. Mỗi tiêu đề T1, T2... là một buổi (Buổi 1, Buổi 2...); ô gộp trải nhiều cột vẫn chỉ là một buổi. Mặc định chỉ tạo các buổi đến buổi cuối cùng có ghi dấu (`--all` để tạo hết).
-File mẫu không có email và ngày học nên email được tạo dạng `<MSSV>@sv.local` và ngày tính từ `--start` (mỗi buổi cách nhau một tuần).
+File mẫu không có email, ngày học, giờ học và phòng nên: email được tạo dạng `<MSSV>@sv.local`; ngày của Buổi 1 lấy từ `--start`, giờ từ `--time`, các buổi sau cách nhau một tuần; phòng từ `--room`.
 Thư mục `du-lieu-truong/` chứa dữ liệu cá nhân thật nên đã nằm trong `.gitignore`, không được commit.
 
 ### Thử quét QR bằng điện thoại ở máy local
