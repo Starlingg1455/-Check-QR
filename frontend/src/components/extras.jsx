@@ -21,9 +21,10 @@ export function AuthImage({ path, alt, className, onClick }) {
 /* Xem ảnh lớn; bấm ra ngoài hoặc Esc để đóng */
 export function Lightbox({ path, title, onClose }) {
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    // Nghe ở pha capture và chặn lan truyền để Esc chỉ đóng ảnh, không đóng luôn hộp thoại bên dưới
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
   }, [onClose]);
   return (
     <div className="overlay lightbox" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>

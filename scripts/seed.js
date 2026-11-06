@@ -1,6 +1,42 @@
 // Tạo dữ liệu demo qua API Gateway (chạy khi hệ thống đang chạy):  npm run seed
 // Giảng viên: gv@demo.vn   |   Sinh viên: sv01@demo.vn ... sv30@demo.vn   (đăng nhập thử nghiệm)
 import ExcelJS from 'exceljs';
+import zlib from 'node:zlib';
+
+// Tạo ảnh PNG mô phỏng "giấy khám bệnh" (không cần thư viện ngoài) để demo đính kèm minh chứng
+function crc32(buf) {
+  let c, crc = 0xffffffff;
+  for (let n = 0; n < buf.length; n++) {
+    c = (crc ^ buf[n]) & 0xff;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    crc = (crc >>> 8) ^ c;
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+function pngChunk(type, data) {
+  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+  const body = Buffer.concat([Buffer.from(type), data]);
+  const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(body));
+  return Buffer.concat([len, body, crc]);
+}
+function makeDemoPng(w = 720, h = 960) {
+  const raw = Buffer.alloc((w * 3 + 1) * h);
+  for (let y = 0; y < h; y++) {
+    const row = y * (w * 3 + 1);
+    raw[row] = 0;
+    for (let x = 0; x < w; x++) {
+      let [r, g, b] = [250, 250, 247]; // nền giấy
+      if (y < 130) [r, g, b] = [42, 120, 214]; // dải tiêu đề màu xanh
+      else if (y > 230 && y < 700 && (y - 230) % 52 < 4 && x > 60 && x < w - 60) [r, g, b] = [190, 190, 184]; // các dòng chữ
+      else if (y > 760 && y < 880 && x > w - 300 && x < w - 60 && (x + y) % 18 < 2) [r, g, b] = [208, 59, 59]; // vùng "con dấu"
+      const i = row + 1 + x * 3;
+      raw[i] = r; raw[i + 1] = g; raw[i + 2] = b;
+    }
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), pngChunk('IHDR', ihdr), pngChunk('IDAT', zlib.deflateSync(raw)), pngChunk('IEND', Buffer.alloc(0))]);
+}
 
 const API = process.env.API_URL || 'http://localhost:4000/api';
 
@@ -78,9 +114,19 @@ for (let n = 1; n <= SESSIONS; n++) {
 // 4) Một đơn xin vắng đang chờ duyệt (để thấy chức năng duyệt đơn)
 const sv = await call('/account/auth/dev-login', { method: 'POST', body: { email: students[4].email, name: students[4].name, role: 'student' } });
 const sessions = await call(`/sessions/sessions?classId=${cls.id}`, { token: T });
+// Đơn 1: có ảnh minh chứng (giấy khám bệnh)
+const requestForm = new FormData();
+requestForm.append('classId', cls.id);
+requestForm.append('sessionId', sessions[sessions.length - 1].id);
+requestForm.append('reason', 'Em bị sốt cao nên không thể đến lớp được ạ. Em xin gửi kèm giấy khám bệnh của bệnh viện.');
+requestForm.append('files', new Blob([makeDemoPng()], { type: 'image/png' }), 'giay-kham-benh.png');
+await call('/attendance/requests', { token: sv.token, method: 'POST', form: requestForm });
+
+// Đơn 2: không có ảnh (để thấy cả hai trường hợp)
+const sv2 = await call('/account/auth/dev-login', { method: 'POST', body: { email: students[13].email, name: students[13].name, role: 'student' } });
 await call('/attendance/requests', {
-  token: sv.token, method: 'POST',
-  body: { classId: cls.id, sessionId: sessions[sessions.length - 1].id, reason: 'Em bị ốm, có giấy khám bệnh đính kèm ạ.' },
+  token: sv2.token, method: 'POST',
+  body: { classId: cls.id, sessionId: sessions[sessions.length - 3].id, reason: 'Em có việc gia đình đột xuất nên xin phép nghỉ buổi này ạ.' },
 });
 
 console.log('\nXong! Đăng nhập thử nghiệm bằng:');

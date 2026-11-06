@@ -5,6 +5,7 @@ import {
 } from 'chart.js';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import { useTheme } from '../theme.jsx';
+import { useZoom } from '../zoom.jsx';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -36,11 +37,11 @@ function baseOptions(c, extra = {}) {
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { color: c.text2, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 9, boxHeight: 9, padding: 16, font: { size: 12.5 } },
+        labels: { color: c.text2, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 9, boxHeight: 9, padding: 18, font: { size: 15 } },
       },
       tooltip: {
         backgroundColor: c.surface, titleColor: c.text, bodyColor: c.text2, borderColor: c.border, borderWidth: 1,
-        padding: 11, cornerRadius: 10, boxPadding: 5, usePointStyle: true, titleFont: { weight: '600' },
+        padding: 12, cornerRadius: 10, boxPadding: 6, usePointStyle: true, titleFont: { size: 15, weight: '600' }, bodyFont: { size: 14 },
       },
     },
     ...extra,
@@ -48,15 +49,31 @@ function baseOptions(c, extra = {}) {
 }
 
 const axes = (c, yExtra = {}) => ({
-  x: { grid: { display: false }, border: { color: c.grid }, ticks: { color: c.muted, font: { size: 12 } } },
-  y: { grid: { color: c.grid }, border: { display: false }, ticks: { color: c.muted, font: { size: 12 }, precision: 0 }, ...yExtra },
+  x: { grid: { display: false }, border: { color: c.grid }, ticks: { color: c.text2, font: { size: 14 } } },
+  y: { grid: { color: c.grid }, border: { display: false }, ticks: { color: c.text2, font: { size: 14 }, precision: 0 }, ...yExtra },
 });
 
+// Khung biểu đồ đối zoom nên chữ trong biểu đồ phải tự nhân theo hệ số phóng to của giao diện
+function scaleFonts(node, z) {
+  if (z === 1 || !node || typeof node !== 'object') return node;
+  if (Array.isArray(node)) return node.map((n) => scaleFonts(n, z));
+  const out = {};
+  for (const [k, v] of Object.entries(node)) {
+    if ((k === 'font' || k === 'titleFont' || k === 'bodyFont') && v && typeof v.size === 'number') out[k] = { ...v, size: Math.round(v.size * z * 10) / 10 };
+    else if (k === 'padding' && typeof v === 'number') out[k] = Math.round(v * z);
+    else out[k] = typeof v === 'object' && v !== null && !(v instanceof Function) ? scaleFonts(v, z) : v;
+  }
+  return out;
+}
+
 const sessionLabel = (s) => `B${s.sessionNo}`;
+// Tên buổi cho tooltip: tránh lặp "Buổi 7: Buổi 7"
+const sessionTitle = (s) => (s.title === `Buổi ${s.sessionNo}` ? s.title : `Buổi ${s.sessionNo}: ${s.title}`);
 
 /* Cột chồng: số sinh viên theo trạng thái ở từng buổi */
 export function SessionStackChart({ perSession }) {
   const c = useColors();
+  const { total: z } = useZoom();
   const data = {
     labels: perSession.map(sessionLabel),
     datasets: [
@@ -69,13 +86,14 @@ export function SessionStackChart({ perSession }) {
   const options = baseOptions(c, {
     scales: { x: { ...axes(c).x, stacked: true }, y: { ...axes(c).y, stacked: true } },
   });
-  options.plugins.tooltip.callbacks = { title: (items) => `Buổi ${perSession[items[0].dataIndex].sessionNo}: ${perSession[items[0].dataIndex].title}` };
-  return <Bar data={data} options={options} />;
+  options.plugins.tooltip.callbacks = { title: (items) => sessionTitle(perSession[items[0].dataIndex]) };
+  return <Bar data={data} options={scaleFonts(options, z)} />;
 }
 
 /* Đường: tỉ lệ đi học (%) theo buổi */
 export function RateLineChart({ perSession }) {
   const c = useColors();
+  const { total: z } = useZoom();
   const data = {
     labels: perSession.map(sessionLabel),
     datasets: [{
@@ -85,18 +103,19 @@ export function RateLineChart({ perSession }) {
       pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: c.accent, pointBorderColor: c.surface, pointBorderWidth: 2,
     }],
   };
-  const options = baseOptions(c, { scales: { x: axes(c).x, y: axes(c, { min: 0, max: 100, ticks: { color: c.muted, callback: (v) => `${v}%` } }).y } });
+  const options = baseOptions(c, { scales: { x: axes(c).x, y: axes(c, { min: 0, max: 100, ticks: { color: c.text2, font: { size: 14 }, callback: (v) => `${v}%` } }).y } });
   options.plugins.legend.display = false;
   options.plugins.tooltip.callbacks = {
-    title: (items) => `Buổi ${perSession[items[0].dataIndex].sessionNo}: ${perSession[items[0].dataIndex].title}`,
+    title: (items) => sessionTitle(perSession[items[0].dataIndex]),
     label: (item) => ` Tỉ lệ đi học: ${item.parsed.y}%`,
   };
-  return <Line data={data} options={options} />;
+  return <Line data={data} options={scaleFonts(options, z)} />;
 }
 
 /* Vành khuyên: cơ cấu trạng thái của tất cả lượt điểm danh, số % ở giữa */
 export function StatusDonut({ overall, avgRate }) {
   const c = useColors();
+  const { total: z } = useZoom();
   const data = {
     labels: ['Có mặt', 'Đi trễ', 'Vắng có phép', 'Vắng'],
     datasets: [{
@@ -122,12 +141,13 @@ export function StatusDonut({ overall, avgRate }) {
     },
   };
   const options = baseOptions(c, { cutout: '70%', interaction: { mode: 'nearest', intersect: true } });
-  return <Doughnut data={data} options={options} plugins={[center]} />;
+  return <Doughnut data={data} options={scaleFonts(options, z)} plugins={[center]} />;
 }
 
 /* Cột: có bao nhiêu sinh viên vắng 0, 1, 2... buổi (tô màu theo mức cảnh báo) */
 export function AbsenceHistogram({ perStudent, absentLimit }) {
   const c = useColors();
+  const { total: z } = useZoom();
   const max = Math.max(absentLimit + 2, ...perStudent.map((s) => s.absent));
   const labels = Array.from({ length: max + 1 }, (_, i) => String(i));
   const counts = labels.map((_, i) => perStudent.filter((s) => s.absent === i).length);
@@ -145,5 +165,5 @@ export function AbsenceHistogram({ perStudent, absentLimit }) {
     title: (items) => `Vắng ${items[0].label} buổi`,
     label: (item) => ` ${item.parsed.y} sinh viên`,
   };
-  return <Bar data={data} options={options} />;
+  return <Bar data={data} options={scaleFonts(options, z)} />;
 }

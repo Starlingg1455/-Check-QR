@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import { AuthProvider } from './auth.jsx';
 import { ThemeProvider } from './theme.jsx';
+import { ZoomProvider } from './zoom.jsx';
 import { ToastProvider } from './components/ui.jsx';
 import './styles.css';
 import './styles-extra.css';
@@ -12,11 +13,13 @@ createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <ThemeProvider>
+        <ZoomProvider>
         <ToastProvider>
           <AuthProvider>
             <App />
           </AuthProvider>
         </ToastProvider>
+      </ZoomProvider>
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>,

@@ -139,6 +139,7 @@ export default function StudentClass() {
                       <AttachmentCount count={h.request.files.length} />
                     </div>
                   )}
+                  {h.request?.teacherNote && <p className="small text-2" style={{ marginTop: 8 }}><b>Giảng viên:</b> {h.request.teacherNote}</p>}
                   {h.request && <RequestThumbs request={h.request} />}
                 </div>
                 <div className="row" style={{ gap: 8 }}>
