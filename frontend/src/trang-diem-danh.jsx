@@ -1,6 +1,6 @@
 // Trang điểm danh của một buổi: mã QR tự đổi + danh sách sinh viên.
 
-import { ArrowLeft, Check, Copy, Lock, Maximize2, Pencil, Radio, Search, Smartphone } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Lock, Maximize2, Pencil, Radio, Search, Smartphone } from './bieu-tuong.jsx';
 import QRCode from 'qrcode';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';

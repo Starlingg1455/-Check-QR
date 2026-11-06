@@ -1,7 +1,7 @@
 // Các trang của sinh viên: lớp của tôi, lịch sử điểm danh + xin vắng, quét QR.
 
 import { Html5Qrcode } from 'html5-qrcode';
-import { ArrowLeft, ArrowRight, CalendarCheck, Camera, CameraOff, CheckCircle2, ChevronRight, Clock, FilePlus2, GraduationCap, ImagePlus, Keyboard, MapPin, ScanLine, ShieldAlert, UserRound, X, XCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarCheck, Camera, CameraOff, CheckCircle2, ChevronRight, Clock, FilePlus2, GraduationCap, ImagePlus, Keyboard, MapPin, ScanLine, ShieldAlert, UserRound, X, XCircle } from './bieu-tuong.jsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api } from './api.js';

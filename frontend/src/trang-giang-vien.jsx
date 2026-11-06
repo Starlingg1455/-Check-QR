@@ -1,6 +1,6 @@
 // Các trang của giảng viên: danh sách lớp và trang một lớp với 5 tab.
 
-import { ArrowLeft, ArrowUpDown, BarChart3, Bell, BookOpen, CalendarCheck, CalendarDays, ChevronRight, ClipboardCheck, Download, Eye, FileText, MailCheck, MapPin, Paperclip, PartyPopper, Pencil, Percent, Play, Plus, QrCode, Radio, Search, Send, ShieldAlert, Trash2, UserPlus, Users } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, BarChart3, Bell, BookOpen, CalendarCheck, CalendarDays, ChevronRight, ClipboardCheck, Download, Eye, FileText, MailCheck, MapPin, Paperclip, PartyPopper, Pencil, Percent, Play, Plus, QrCode, Radio, Search, Send, ShieldAlert, Trash2, UserPlus, Users } from './bieu-tuong.jsx';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, download } from './api.js';

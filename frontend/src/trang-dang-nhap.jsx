@@ -1,5 +1,5 @@
 import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
-import { ArrowRight, BarChart3, BellRing, GraduationCap, Presentation, QrCode, ScanLine } from 'lucide-react';
+import { ArrowRight, BarChart3, BellRing, GraduationCap, Presentation, QrCode, ScanLine } from './bieu-tuong.jsx';
 import { useState } from 'react';
 import { api } from './api.js';
 import { useXacThuc } from './ngu-canh.jsx';

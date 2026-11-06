@@ -1,6 +1,6 @@
 // Các cửa sổ xem chi tiết: một đơn xin vắng, một sinh viên, một buổi, danh sách theo biểu đồ.
 
-import { CalendarDays, Check, ChevronRight, Clock, Clock3, Eye, Hash, Mail, MousePointerClick, Paperclip, Users, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronRight, Clock, Clock3, Eye, Hash, Mail, MousePointerClick, Paperclip, Users, X } from './bieu-tuong.jsx';
 import { useMemo, useState } from 'react';
 import { api } from './api.js';
 import { AnhCoXacThuc, AnhDaiDien, NhanTrangThai, VongXoayNut, HopThoaiXacNhanLuu, HopThoaiXacNhan, TruongNhap, NhanMucCanhBao, XemAnhLon, DangTai, HopThoai, TRANG_THAI, ThanhLuuThayDoi, MenuTrangThai, dinhDangNgay, dinhDangNgayGio, dinhDangDungLuong, dinhDangGio, phanTram, useTaiDuLieu, useThayDoiChuaLuu, useThongBao, useCanhBaoChuaLuu } from './thanh-phan.jsx';

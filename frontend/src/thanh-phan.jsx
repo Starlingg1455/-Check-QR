@@ -1,6 +1,6 @@
 // Các thành phần giao diện dùng chung: nút, thẻ, hộp thoại, ảnh, menu, khung trang...
 
-import { AlertTriangle, ArrowRight, Ban, CheckCircle2, ChevronDown, Clock, GraduationCap, ImageOff, Info, LayoutDashboard, Loader2, LogOut, Minus, Moon, Paperclip, Plus, QrCode, Save, ScanLine, ShieldAlert, ShieldCheck, Sun, Undo2, X, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Ban, CheckCircle2, ChevronDown, Clock, GraduationCap, ImageOff, Info, LayoutDashboard, Loader2, LogOut, Minus, Moon, Paperclip, Plus, QrCode, Save, ScanLine, ShieldAlert, ShieldCheck, Sun, Undo2, X, XCircle } from './bieu-tuong.jsx';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { taiAnhVeUrl } from './api.js';
