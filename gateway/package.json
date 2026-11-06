@@ -1,12 +1,12 @@
 {
-  "name": "api-gateway",
+  "name": "cong-api",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --env-file-if-exists=../.env src/index.js",
-    "watch": "node --watch-path=./src --env-file-if-exists=../.env src/index.js",
-    "start": "node src/index.js"
+    "dev": "node --env-file-if-exists=../.env src/may-chu.js",
+    "watch": "node --watch-path=./src --env-file-if-exists=../.env src/may-chu.js",
+    "start": "node src/may-chu.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

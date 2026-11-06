@@ -34,7 +34,7 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: npm start -w services/account-class
+    startCommand: npm start -w services/tai-khoan-lop-hoc
     healthCheckPath: /health
     envVars:
       - fromGroup: qr-shared
@@ -52,7 +52,7 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: npm start -w services/session-qr
+    startCommand: npm start -w services/buoi-hoc-qr
     healthCheckPath: /health
     envVars:
       - fromGroup: qr-shared
@@ -66,7 +66,7 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: npm start -w services/attendance
+    startCommand: npm start -w services/diem-danh
     healthCheckPath: /health
     envVars:
       - fromGroup: qr-shared
@@ -90,7 +90,7 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: npm start -w services/statistics
+    startCommand: npm start -w services/thong-ke
     healthCheckPath: /health
     envVars:
       - fromGroup: qr-shared

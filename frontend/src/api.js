@@ -1,18 +1,18 @@
 // Gọi API Gateway. Khi deploy, đặt VITE_API_URL = địa chỉ gateway (vd https://gateway.onrender.com)
-const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api';
+const DIA_CHI_GOC_API = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api';
 
-export const getToken = () => {
+export const layToken = () => {
   try { return localStorage.getItem('token'); } catch { return null; }
 };
-export const setToken = (t) => {
+export const datToken = (t) => {
   try { t ? localStorage.setItem('token', t) : localStorage.removeItem('token'); } catch { /* bỏ qua */ }
 };
 
 async function request(path, { method = 'GET', body, form } = {}) {
-  const token = getToken();
+  const token = layToken();
   let res;
   try {
-    res = await fetch(BASE + path, {
+    res = await fetch(DIA_CHI_GOC_API + path, {
       method,
       headers: {
         ...(body ? { 'Content-Type': 'application/json' } : {}),
@@ -24,7 +24,7 @@ async function request(path, { method = 'GET', body, form } = {}) {
     throw new Error('Không kết nối được máy chủ. Hãy kiểm tra mạng hoặc thử lại sau.');
   }
   if (res.status === 401 && token) {
-    setToken(null);
+    datToken(null);
     window.dispatchEvent(new Event('auth:expired'));
   }
   return res;
@@ -43,7 +43,7 @@ export async function api(path, options) {
 }
 
 // Tải ảnh có kèm token, trả về đường dẫn tạm dùng cho thẻ <img>
-export async function fetchBlobUrl(path) {
+export async function taiAnhVeUrl(path) {
   const res = await request(path);
   if (!res.ok) throw new Error('Không tải được ảnh');
   return URL.createObjectURL(await res.blob());
