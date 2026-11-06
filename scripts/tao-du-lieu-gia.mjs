@@ -64,7 +64,7 @@ const T = teacher.token;
 // 1) Tạo lớp
 const existing = await goiApi('/account/classes', { token: T });
 if (existing.some((c) => c.code === 'TH4318_23CN1')) {
-  console.error('Lớp TH4318_23CN1 đã có. Xoá thư mục .data (hoặc xoá lớp) rồi chạy lại để tránh trùng.');
+  console.error('Lớp TH4318_23CN1 đã có. Xoá thư mục dữ liệu ~/.diem-danh-qr (hoặc xoá lớp) rồi chạy lại để tránh trùng.');
   process.exit(1);
 }
 const cls = await goiApi('/account/classes', {

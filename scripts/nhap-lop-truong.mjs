@@ -123,7 +123,7 @@ const T = login.token;
 
 const existing = await goiApi('/account/classes', { token: T });
 if (existing.some((c) => c.code === classCode)) {
-  console.error(`Lớp "${classCode}" đã có trong hệ thống. Xoá lớp đó (hoặc xoá thư mục .data) rồi chạy lại để tránh nhập trùng.`);
+  console.error(`Lớp "${classCode}" đã có trong hệ thống. Xoá lớp đó (hoặc xoá thư mục dữ liệu ~/.diem-danh-qr) rồi chạy lại để tránh nhập trùng.`);
   process.exit(1);
 }
 

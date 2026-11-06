@@ -1,6 +1,6 @@
 // Kiểm thử toàn bộ hệ thống qua API Gateway.  Chạy:  npm run kiem-thu   (hoặc: node scripts/kiem-thu.mjs)
 // Cần chạy sau khi đã bật backend và tạo dữ liệu giả (npm run tao-du-lieu-gia), vì các kiểm thử dựa vào lớp giả lập
-// TH4318_23CN1 (40 sinh viên, 15 buổi). Các kiểm thử sẽ làm thay đổi dữ liệu: xoá thư mục .data và tạo lại sau khi chạy.
+// TH4318_23CN1 (40 sinh viên, 15 buổi). Các kiểm thử sẽ làm thay đổi dữ liệu: xoá thư mục dữ liệu (~/.diem-danh-qr) và tạo lại sau khi chạy.
 const DIA_CHI_API = process.env.API_URL || 'http://localhost:4000/api';
 
 // ---------------------------------------------------------------------------------------------

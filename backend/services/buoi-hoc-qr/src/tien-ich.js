@@ -3,6 +3,7 @@
 
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import pg from 'pg';
 
@@ -46,7 +47,7 @@ export function xuLyLoi(err, _req, res, _next) {
 // ============ Cơ sở dữ liệu (PostgreSQL / PGlite) ============
 
 // Kết nối database: dùng PostgreSQL thật (Supabase) nếu có DATABASE_URL,
-// nếu không thì dùng PGlite (Postgres chạy trong Node) lưu ở thư mục .data để chạy local.
+// nếu không thì dùng PGlite (Postgres chạy trong Node) lưu ở ngoài thư mục dự án (~/.diem-danh-qr) để chạy local.
 
 export async function taoCoSoDuLieu(schema) {
   let runQuery;
@@ -64,10 +65,16 @@ export async function taoCoSoDuLieu(schema) {
     runExec = (text) => pool.query(text);
   } else {
     const { PGlite } = await import('@electric-sql/pglite');
-    // Thư mục dữ liệu cục bộ nằm ở gốc dự án: .data/<schema>
-    const dir = path.resolve(process.env.DATA_DIR || '../../../.data', schema);
-    fs.mkdirSync(dir, { recursive: true });
-    const lite = new PGlite(dir);
+    // Mỗi PGlite là một cụm dữ liệu Postgres đầy đủ (~1.000 tệp), nên lưu NGOÀI thư mục dự án:
+    // mặc định ~/.diem-danh-qr/<schema>. Đặt DATA_DIR=memory để chạy trong bộ nhớ (không tạo tệp, tắt dịch vụ là mất dữ liệu).
+    let lite;
+    if (process.env.DATA_DIR === 'memory') {
+      lite = new PGlite();
+    } else {
+      const dir = path.resolve(process.env.DATA_DIR || path.join(os.homedir(), '.diem-danh-qr'), schema);
+      fs.mkdirSync(dir, { recursive: true });
+      lite = new PGlite(dir);
+    }
     runQuery = (text, params) => lite.query(text, params);
     runExec = (text) => lite.exec(text);
   }

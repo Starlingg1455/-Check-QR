@@ -65,10 +65,10 @@ npm run dev -w frontend         # giao diện (cửa sổ 2)  ->  http://localho
 npm run tao-du-lieu-gia         # (tuỳ chọn) tạo lớp GIẢ LẬP TH4318_23CN1 (40 sinh viên, 15 buổi)
 ```
 
-- Chưa đặt `DATABASE_URL` thì mỗi dịch vụ tự dùng PGlite (Postgres chạy trong Node), lưu ở `.data/`. Xoá thư mục này là về dữ liệu trống.
+- Chưa đặt `DATABASE_URL` thì mỗi dịch vụ tự dùng PGlite (Postgres chạy trong Node). Dữ liệu lưu **ngoài thư mục dự án** ở `~/.diem-danh-qr` (Windows: `C:\Users\<tên>\.diem-danh-qr`), vì mỗi bản PGlite gồm khoảng 1.000 tệp của Postgres. Xoá thư mục đó là về dữ liệu trống. Đặt `DATA_DIR=memory` để chạy hoàn toàn trong bộ nhớ (không tạo tệp, tắt dịch vụ là mất dữ liệu), hoặc `DATA_DIR=<đường dẫn>` để đổi nơi lưu.
 - Đăng nhập thử nghiệm (khi `ALLOW_DEV_LOGIN=true`): `gv@demo.vn` (giảng viên), `sv01@demo.vn` … `sv40@demo.vn` (sinh viên của lớp giả lập). Sinh viên lớp của trường đăng nhập bằng `<MSSV>@sv.local`.
 - Swagger tổng hợp: <http://localhost:4000/docs>. Mỗi dịch vụ cũng có `/docs` riêng.
-- Kiểm thử tự động (sau khi tạo dữ liệu giả): `npm run kiem-thu`. Bộ kiểm thử làm thay đổi dữ liệu, nên xoá `.data` và tạo lại sau khi chạy.
+- Kiểm thử tự động (sau khi tạo dữ liệu giả): `npm run kiem-thu`. Bộ kiểm thử làm thay đổi dữ liệu, nên xoá thư mục dữ liệu (`~/.diem-danh-qr`) và tạo lại sau khi chạy.
 
 ### Nhập bảng điểm danh mẫu của trường
 ```bash
