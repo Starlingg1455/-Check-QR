@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Users, Percent, ShieldAlert, CalendarDays, ChevronRight, Ban, FileText } from 'lucide-react';
 import { Card, StatTile, Loading, ErrorBox, Empty, LEVEL } from '../../components/ui.jsx';
 import { RateLineChart, StatusDonut, AbsenceHistogram } from '../../components/charts.jsx';
-import { AttendanceDetailModal, AbsenceDetailModal } from './DrillModals.jsx';
+import { AttendanceDetailModal, AbsenceDetailModal, SessionDetailModal } from './DrillModals.jsx';
 import StudentDetailModal from './StudentDetailModal.jsx';
 
 /* Tab Tổng quan: chỉ số chính + biểu đồ. Danh sách chi tiết nằm ở tab Sinh viên và Cảnh báo. */
 export default function StatsTab({ cls, requests, stats, atRisk, pending, onGoAlerts, onGoStudents, onGoRequests }) {
-  const [detail, setDetail] = useState(null); // null | { type: 'attendance' } | { type: 'absence', count }
+  const [detail, setDetail] = useState(null); // null | { type: 'attendance' } | { type: 'absence', count } | { type: 'session', index }
   const [studentCode, setStudentCode] = useState(null); // sinh viên đang xem chi tiết (mở chồng lên danh sách)
   if (stats.loading) return <Loading />;
   if (stats.error) return <ErrorBox message={stats.error} onRetry={stats.reload} />;
@@ -48,7 +48,7 @@ export default function StatsTab({ cls, requests, stats, atRisk, pending, onGoAl
       </div>
 
       <div className="grid-2">
-        <Card title="Tỉ lệ đi học theo buổi" subtitle="Có mặt + đi trễ, tính trên sĩ số"><div className="chart-box tall"><RateLineChart perSession={s.perSession} /></div></Card>
+        <Card title="Tỉ lệ đi học theo buổi" subtitle="Có mặt + đi trễ, tính trên sĩ số. Bấm vào một buổi để xem chi tiết"><div className="chart-box tall"><RateLineChart perSession={s.perSession} onSelect={(index) => setDetail({ type: 'session', index })} /></div></Card>
         <div
           className="card card-hover donut-card"
           role="button" tabIndex={0}
@@ -71,6 +71,7 @@ export default function StatsTab({ cls, requests, stats, atRisk, pending, onGoAl
         </div>
       </Card>
 
+      {detail?.type === 'session' && <SessionDetailModal stats={s} index={detail.index} onOpenStudent={setStudentCode} onClose={() => setDetail(null)} />}
       {detail?.type === 'attendance' && <AttendanceDetailModal stats={s} onOpenStudent={setStudentCode} onClose={() => setDetail(null)} />}
       {detail?.type === 'absence' && <AbsenceDetailModal count={detail.count} stats={s} onOpenStudent={setStudentCode} onClose={() => setDetail(null)} />}
       {studentCode && (() => {

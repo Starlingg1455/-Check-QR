@@ -107,7 +107,7 @@ export function SessionStackChart({ perSession, onSelect }) {
 }
 
 /* Đường: tỉ lệ đi học (%) theo buổi */
-export function RateLineChart({ perSession }) {
+export function RateLineChart({ perSession, onSelect }) {
   const c = useColors();
   const { total: z } = useZoom();
   const data = {
@@ -125,6 +125,11 @@ export function RateLineChart({ perSession }) {
     title: (items) => sessionTitle(perSession[items[0].dataIndex]),
     label: (item) => ` Tỉ lệ đi học: ${item.parsed.y}%`,
   };
+  if (onSelect) {
+    // Bấm vào điểm hoặc bất kỳ chỗ nào trong cột của buổi đó đều mở chi tiết buổi
+    options.onHover = pointerOnHover;
+    options.onClick = (_evt, els) => { if (els[0]) onSelect(els[0].index); };
+  }
   return <Line data={data} options={scaleFonts(options, z)} />;
 }
 
