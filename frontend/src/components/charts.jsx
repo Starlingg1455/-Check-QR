@@ -66,12 +66,19 @@ function scaleFonts(node, z) {
   return out;
 }
 
+// Rê chuột lên phần tử bấm được thì đổi con trỏ thành bàn tay
+const pointerOnHover = (evt, elements) => {
+  const el = evt.native?.target;
+  if (el) el.style.cursor = elements.length ? 'pointer' : 'default';
+};
+const STATUS_KEYS = ['present', 'late', 'excused', 'absent'];
+
 const sessionLabel = (s) => `B${s.sessionNo}`;
 // Tên buổi cho tooltip: tránh lặp "Buổi 7: Buổi 7"
 const sessionTitle = (s) => (s.title === `Buổi ${s.sessionNo}` ? s.title : `Buổi ${s.sessionNo}: ${s.title}`);
 
 /* Cột chồng: số sinh viên theo trạng thái ở từng buổi */
-export function SessionStackChart({ perSession }) {
+export function SessionStackChart({ perSession, onSelect }) {
   const c = useColors();
   const { total: z } = useZoom();
   const data = {
@@ -87,6 +94,15 @@ export function SessionStackChart({ perSession }) {
     scales: { x: { ...axes(c).x, stacked: true }, y: { ...axes(c).y, stacked: true } },
   });
   options.plugins.tooltip.callbacks = { title: (items) => sessionTitle(perSession[items[0].dataIndex]) };
+  if (onSelect) {
+    options.onHover = pointerOnHover;
+    // Bấm vào đúng đoạn màu nào thì chọn trạng thái đó; bấm vào khoảng trống của cột thì chỉ chọn buổi
+    options.onClick = (evt, els, chart) => {
+      const hit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true)[0];
+      const index = hit ? hit.index : els[0]?.index;
+      if (index !== undefined) onSelect(index, hit ? STATUS_KEYS[hit.datasetIndex] : null);
+    };
+  }
   return <Bar data={data} options={scaleFonts(options, z)} />;
 }
 
@@ -131,21 +147,20 @@ export function StatusDonut({ overall, avgRate }) {
       const y = (a.top + a.bottom) / 2;
       ctx.save();
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.fillStyle = c.text;
-      ctx.font = `700 28px ${getComputedStyle(document.body).fontFamily}`;
-      ctx.fillText(avgRate === null ? '—' : `${avgRate}%`, x, y + 4);
-      ctx.fillStyle = c.muted;
-      ctx.font = `500 12px ${getComputedStyle(document.body).fontFamily}`;
-      ctx.fillText('đi học', x, y + 24);
+      ctx.font = `700 ${Math.round(44 * z)}px ${getComputedStyle(document.body).fontFamily}`;
+      ctx.fillText(avgRate === null ? '—' : `${avgRate}%`, x, y);
       ctx.restore();
     },
   };
-  const options = baseOptions(c, { cutout: '70%', interaction: { mode: 'nearest', intersect: true } });
+  const options = baseOptions(c, { cutout: '72%', interaction: { mode: 'nearest', intersect: true } });
+  options.plugins.legend.display = false; // chỉ hình tròn + phần trăm; chú thích nằm ở màn hình chi tiết
   return <Doughnut data={data} options={scaleFonts(options, z)} plugins={[center]} />;
 }
 
 /* Cột: có bao nhiêu sinh viên vắng 0, 1, 2... buổi (tô màu theo mức cảnh báo) */
-export function AbsenceHistogram({ perStudent, absentLimit }) {
+export function AbsenceHistogram({ perStudent, absentLimit, onSelect }) {
   const c = useColors();
   const { total: z } = useZoom();
   const max = Math.max(absentLimit + 2, ...perStudent.map((s) => s.absent));
@@ -165,5 +180,10 @@ export function AbsenceHistogram({ perStudent, absentLimit }) {
     title: (items) => `Vắng ${items[0].label} buổi`,
     label: (item) => ` ${item.parsed.y} sinh viên`,
   };
+  if (onSelect) {
+    options.interaction = { mode: 'nearest', intersect: false, axis: 'x' };
+    options.onHover = (evt, els) => pointerOnHover(evt, els.filter((e) => counts[e.index] > 0));
+    options.onClick = (_evt, els) => { if (els[0] && counts[els[0].index] > 0) onSelect(els[0].index); };
+  }
   return <Bar data={data} options={scaleFonts(options, z)} />;
 }

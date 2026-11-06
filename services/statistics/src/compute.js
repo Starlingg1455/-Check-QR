@@ -57,13 +57,20 @@ export async function computeClassStats(classId, token) {
   // --- Theo buổi ---
   const perSession = closed.map((sess) => {
     const c = { present: 0, late: 0, excused: 0, absent: 0 };
-    for (const s of students) c[getStatus(sess.id, s.email)]++;
+    // Danh sách ai ở trạng thái nào trong buổi này (để bấm vào biểu đồ xem chi tiết)
+    const lists = { present: [], late: [], excused: [], absent: [] };
+    for (const s of students) {
+      const status = getStatus(sess.id, s.email);
+      c[status]++;
+      lists[status].push({ studentCode: s.student_code, fullName: s.full_name });
+    }
     return {
       sessionId: sess.id,
       sessionNo: sess.sessionNo,
       title: sess.title,
       date: sess.openedAt,
       ...c,
+      lists,
       rate: students.length ? round1(((c.present + c.late) / students.length) * 100) : null,
     };
   });

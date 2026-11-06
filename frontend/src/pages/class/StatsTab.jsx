@@ -1,32 +1,12 @@
+import { useState } from 'react';
 import { Users, Percent, ShieldAlert, CalendarDays, ChevronRight, Ban, FileText } from 'lucide-react';
-import { Card, StatTile, Loading, ErrorBox, Empty, LEVEL, STATUS } from '../../components/ui.jsx';
-import { SessionStackChart, RateLineChart, AbsenceHistogram } from '../../components/charts.jsx';
-
-/* Cơ cấu điểm danh: số lớn + thanh tỉ lệ + bảng số liệu, chữ to dễ đọc khi chiếu */
-function Composition({ overall, avgRate }) {
-  const rows = ['present', 'late', 'excused', 'absent'].map((k) => ({ key: k, count: overall[k], ...STATUS[k] }));
-  const total = rows.reduce((a, r) => a + r.count, 0) || 1;
-  return (
-    <div>
-      <div className="comp-hero"><b className="num">{avgRate ?? '—'}<small>%</small></b><span>tỉ lệ đi học (có mặt + đi trễ)</span></div>
-      <div className="comp-bar" role="img" aria-label="Cơ cấu điểm danh">
-        {rows.map((r) => r.count > 0 && <span key={r.key} style={{ width: `${(r.count / total) * 100}%`, background: `var(${r.cssVar})` }} title={`${r.label}: ${r.count}`} />)}
-      </div>
-      <div className="comp-rows">
-        {rows.map((r) => (
-          <div className="comp-row" key={r.key}>
-            <span className="comp-label"><i style={{ background: `var(${r.cssVar})` }} /><r.icon size={18} color={`var(${r.cssVar})`} />{r.label}</span>
-            <b className="num">{r.count}</b>
-            <span className="num muted comp-pct">{Math.round((r.count / total) * 1000) / 10}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+import { Card, StatTile, Loading, ErrorBox, Empty, LEVEL } from '../../components/ui.jsx';
+import { RateLineChart, StatusDonut, AbsenceHistogram } from '../../components/charts.jsx';
+import { AttendanceDetailModal, AbsenceDetailModal } from './DrillModals.jsx';
 
 /* Tab Tổng quan: chỉ số chính + biểu đồ. Danh sách chi tiết nằm ở tab Sinh viên và Cảnh báo. */
 export default function StatsTab({ stats, atRisk, pending, onGoAlerts, onGoStudents, onGoRequests }) {
+  const [detail, setDetail] = useState(null); // null | { type: 'attendance' } | { type: 'absence', count }
   if (stats.loading) return <Loading />;
   if (stats.error) return <ErrorBox message={stats.error} onRetry={stats.reload} />;
   const s = stats.data;
@@ -66,18 +46,31 @@ export default function StatsTab({ stats, atRisk, pending, onGoAlerts, onGoStude
       </div>
 
       <div className="grid-2">
-        <Card title="Tỉ lệ đi học theo buổi" subtitle="Có mặt + đi trễ, tính trên sĩ số"><div className="chart-box"><RateLineChart perSession={s.perSession} /></div></Card>
-        <Card title="Số sinh viên theo trạng thái" subtitle="Mỗi cột là một buổi học"><div className="chart-box"><SessionStackChart perSession={s.perSession} /></div></Card>
+        <Card title="Tỉ lệ đi học theo buổi" subtitle="Có mặt + đi trễ, tính trên sĩ số"><div className="chart-box tall"><RateLineChart perSession={s.perSession} /></div></Card>
+        <div
+          className="card card-hover donut-card"
+          role="button" tabIndex={0}
+          onClick={() => setDetail({ type: 'attendance' })}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setDetail({ type: 'attendance' })}
+          aria-label="Cơ cấu điểm danh. Bấm để xem chi tiết"
+        >
+          <div className="card-head"><div><h2>Cơ cấu điểm danh</h2><p>Tỉ lệ đi học của cả lớp</p></div></div>
+          <div className="card-body"><div className="chart-box"><StatusDonut overall={s.overall} avgRate={s.avgRate} /></div></div>
+          <div className="drill-hint">Bấm để xem chi tiết<ChevronRight size={16} /></div>
+        </div>
       </div>
-      <div className="grid-2">
-        <Card title="Cơ cấu điểm danh" subtitle="Toàn bộ lượt điểm danh của lớp"><Composition overall={s.overall} avgRate={s.avgRate} /></Card>
-        <Card title="Phân bố số buổi vắng" subtitle="Mỗi cột: số sinh viên vắng đúng chừng đó buổi">
-          <div className="chart-box sm"><AbsenceHistogram perStudent={s.perStudent} absentLimit={s.absentLimit} /></div>
-          <div className="legend" style={{ marginTop: 12 }}>
-            {['ok', 'warning', 'danger', 'banned'].map((l) => <span key={l}><i style={{ background: `var(${LEVEL[l].cssVar})` }} />{LEVEL[l].label}</span>)}
-          </div>
-        </Card>
-      </div>
+      <Card
+        title="Phân bố số buổi vắng"
+        subtitle="Bấm vào một cột để xem những sinh viên nào"
+      >
+        <div className="chart-box sm"><AbsenceHistogram perStudent={s.perStudent} absentLimit={s.absentLimit} onSelect={(count) => setDetail({ type: 'absence', count })} /></div>
+        <div className="legend" style={{ marginTop: 12 }}>
+          {['ok', 'warning', 'danger', 'banned'].map((l) => <span key={l}><i style={{ background: `var(${LEVEL[l].cssVar})` }} />{LEVEL[l].label}</span>)}
+        </div>
+      </Card>
+
+      {detail?.type === 'attendance' && <AttendanceDetailModal stats={s} onClose={() => setDetail(null)} />}
+      {detail?.type === 'absence' && <AbsenceDetailModal count={detail.count} stats={s} onClose={() => setDetail(null)} />}
     </div>
   );
 }

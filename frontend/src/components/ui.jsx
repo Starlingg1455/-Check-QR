@@ -163,7 +163,7 @@ export function Modal({ title, onClose, children, footer, wide }) {
   }, [onClose]);
   return (
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label={title} style={wide ? { maxWidth: 620 } : undefined}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={title} style={wide ? { maxWidth: typeof wide === 'number' ? wide : 620 } : undefined}>
         <div className="modal-head">
           <h2>{title}</h2>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} aria-label="Đóng"><X size={18} /></button>
