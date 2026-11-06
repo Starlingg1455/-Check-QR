@@ -3,9 +3,10 @@ import { Mail, Hash, Clock3 } from 'lucide-react';
 import { api } from '../../api.js';
 import { Modal, Avatar, LevelBadge, Loading, STATUS, useLoad, useToast, fmtDate, fmtTime, pct } from '../../components/ui.jsx';
 import { StatusMenu } from '../../components/extras.jsx';
+import { useStaged, useUnsavedWarning, SaveBar, ConfirmModal, ConfirmChangesModal } from '../../components/staged.jsx';
 import { RequestDetailModal, RequestChip } from './RequestDetailModal.jsx';
 
-const SOURCE = { qr: 'Quét QR', manual: 'Giảng viên sửa tay', request: 'Theo đơn xin vắng', import: 'Từ file Excel' };
+const SOURCE = { request: 'Theo đơn xin vắng', import: 'Từ file Excel' };
 
 /* Chi tiết một sinh viên: tỉ lệ, số buổi vắng so với giới hạn, từng buổi (giờ + cách điểm danh), đơn xin vắng. */
 export default function StudentDetailModal({ student, stats, cls, requests, onChanged, onClose }) {
@@ -18,6 +19,11 @@ export default function StudentDetailModal({ student, stats, cls, requests, onCh
   const records = useLoad(() => api(`/attendance/classes/${cls.id}/records`), [cls.id]);
   // Đơn xin vắng đang mở để duyệt (luôn lấy bản mới nhất từ danh sách đơn của lớp)
   const [openRequestId, setOpenRequestId] = useState(null);
+  const staged = useStaged(); // sửa tay chưa lưu: sessionId -> trạng thái mới
+  const [confirming, setConfirming] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+  useUnsavedWarning(staged.count > 0);
   const openRequest = openRequestId && (requests || []).find((r) => r.id === openRequestId);
 
   // Trạng thái từng buổi (chỉ các buổi đã đóng), suy ra từ danh sách theo buổi của thống kê
@@ -31,22 +37,37 @@ export default function StudentDetailModal({ student, stats, cls, requests, onCh
     });
   }, [stats, records.data, requests, email, code]);
 
-  // Giảng viên sửa tay trạng thái một buổi ngay tại đây (vd bạn đi muộn sau khi đã đóng QR)
-  async function setStatus(row, status) {
+  // Danh sách thay đổi chưa lưu, hiển thị trong hộp xác nhận
+  const changeItems = rows
+    .filter((r) => staged.map[r.sessionId] !== undefined)
+    .map((r) => ({ id: r.sessionId, title: `Buổi ${r.sessionNo} · ${r.title}`, sub: fmtDate(r.date), from: r.status, to: staged.map[r.sessionId] }));
+
+  async function saveChanges() {
+    setSaving(true);
     try {
-      await api(`/attendance/sessions/${row.sessionId}/students/${encodeURIComponent(student.email)}`, { method: 'PUT', body: { status } });
-      toast.success(`Đã sửa buổi ${row.sessionNo}: ${STATUS[status].label}`);
+      const changes = changeItems.map((c) => ({ sessionId: c.id, email: student.email, status: c.to }));
+      const r = await api(`/attendance/classes/${cls.id}/changes`, { method: 'POST', body: { changes } });
+      toast.success(`Đã lưu ${r.applied} thay đổi cho ${student.full_name}`);
+      staged.clear();
+      setConfirming(false);
       records.refresh();
       onChanged?.();
-    } catch (e) { toast.error(e.message); }
+    } catch (e) { toast.error(e.message); } finally { setSaving(false); }
   }
+  // Đóng cửa sổ: còn thay đổi chưa lưu thì hỏi lại
+  const tryClose = () => (staged.count > 0 ? setDiscarding(true) : onClose());
 
   const limit = stats?.absentLimit ?? 0;
   const absent = summary?.absent ?? 0;
   const used = Math.min(100, limit ? (absent / limit) * 100 : absent ? 100 : 0);
 
   return (
-    <Modal wide={780} title="Chi tiết sinh viên" onClose={onClose}>
+    <Modal
+      wide={780}
+      title="Chi tiết sinh viên"
+      onClose={tryClose}
+      footer={staged.count > 0 ? <SaveBar inline count={staged.count} onDiscard={staged.clear} onSave={() => setConfirming(true)} /> : undefined}
+    >
       <div className="stack">
         {/* Thông tin chung */}
         <div className="row" style={{ alignItems: 'flex-start' }}>
@@ -68,55 +89,41 @@ export default function StudentDetailModal({ student, stats, cls, requests, onCh
         ) : (
           <>
             {/* Số liệu chính */}
-            <div className="detail-stats">
+            <div className="detail-stats four">
               <div><b className="num">{pct(summary.rate)}</b><span>Tỉ lệ đi học</span></div>
               <div><b className="num">{summary.present}</b><span>Có mặt</span></div>
               <div><b className="num">{summary.late}</b><span>Đi muộn</span></div>
               <div><b className="num">{summary.excused}</b><span>Có phép</span></div>
-              <div className={summary.absent > limit ? 'bad' : ''}><b className="num">{summary.absent}</b><span>Vắng</span></div>
             </div>
 
             <div>
-              <div className="row between small" style={{ marginBottom: 6 }}>
-                <b>Vắng không phép: {summary.absent}/{limit} buổi cho phép</b>
-                <span className="muted">Quá {limit} buổi sẽ bị cấm thi</span>
-              </div>
+              <div className="small" style={{ marginBottom: 6 }}><b>Vắng không phép {summary.absent}/{limit} buổi</b> <span className="muted">(quá {limit} buổi bị cấm thi)</span></div>
               <div className="bar"><span style={{ width: `${used}%`, background: `var(${summary.level === 'banned' ? '--critical' : summary.level === 'danger' ? '--serious' : summary.level === 'warning' ? '--warning' : '--good'})` }} /></div>
             </div>
 
-            {/* Dải màu theo thứ tự các buổi */}
-            <div>
-              <div className="small bold text-2" style={{ marginBottom: 8 }}>Diễn biến qua {rows.length} buổi</div>
-              <div className="strip" role="img" aria-label="Diễn biến điểm danh qua các buổi">
-                {rows.map((r) => {
-                  const S = STATUS[r.status];
-                  return <span key={r.sessionId} title={`Buổi ${r.sessionNo}: ${S.label}`} style={{ background: `var(${S.cssVar})` }}><i>{r.sessionNo}</i></span>;
-                })}
-              </div>
-              <div className="legend" style={{ marginTop: 10 }}>
-                {['present', 'late', 'excused', 'absent'].map((k) => <span key={k}><i style={{ background: `var(${STATUS[k].cssVar})` }} />{STATUS[k].label}</span>)}
-              </div>
+            {/* Dải màu theo thứ tự các buổi (rê chuột để xem tên trạng thái) */}
+            <div className="strip" role="img" aria-label={`Diễn biến điểm danh qua ${rows.length} buổi`}>
+              {rows.map((r) => {
+                const S = STATUS[staged.map[r.sessionId] ?? r.status];
+                return <span key={r.sessionId} title={`Buổi ${r.sessionNo}: ${S.label}`} style={{ background: `var(${S.cssVar})` }}><i>{r.sessionNo}</i></span>;
+              })}
             </div>
 
             {/* Từng buổi */}
             <div>
-              <div className="small bold text-2" style={{ marginBottom: 8 }}>Từng buổi học <span className="muted" style={{ fontWeight: 400 }}>· bấm vào trạng thái để sửa tay</span></div>
+              <div className="small bold text-2" style={{ marginBottom: 8 }}>Từng buổi học <span className="muted" style={{ fontWeight: 400 }}>· bấm vào trạng thái để sửa, rồi Lưu</span></div>
               {records.loading ? <Loading /> : (
                 <div className="drill-list" style={{ maxHeight: 340 }}>
                   {[...rows].reverse().map((r) => (
-                    <div className="drill-row" key={r.sessionId} style={{ alignItems: 'flex-start' }}>
+                    <div className={`drill-row ${staged.map[r.sessionId] !== undefined ? 'staged-row' : ''}`} key={r.sessionId} style={{ alignItems: 'flex-start' }}>
                       <div className="timeline-no">{r.sessionNo}</div>
                       <div className="grow">
                         <div className="bold">{r.title} <span className="small muted" style={{ fontWeight: 400 }}>· {fmtDate(r.date)}</span></div>
-                        <div className="small text-2 row wrap" style={{ gap: 12, marginTop: 2 }}>
-                          {r.record && (r.status === 'present' || r.status === 'late') && r.record.source === 'qr' && <span className="row" style={{ gap: 4 }}><Clock3 size={13} />Quét lúc {fmtTime(r.record.checkedAt)}</span>}
-                          {r.record && <span>{SOURCE[r.record.source] || r.record.source}</span>}
-                          {!r.record && r.status === 'absent' && <span className="muted">Không có bản ghi điểm danh</span>}
-                        </div>
-                        {r.record?.note && r.record.source !== 'request' && <div className="small text-2" style={{ marginTop: 2 }}>Ghi chú: {r.record.note}</div>}
+                        {r.record?.source === 'qr' && (r.status === 'present' || r.status === 'late') && <div className="small text-2 row" style={{ gap: 4, marginTop: 2 }}><Clock3 size={13} />Quét QR lúc {fmtTime(r.record.checkedAt)}</div>}
+                        {r.record && ['request', 'import'].includes(r.record.source) && <div className="small text-2" style={{ marginTop: 2 }}>{SOURCE[r.record.source]}</div>}
                         {r.request && <RequestChip request={r.request} onOpen={() => setOpenRequestId(r.request.id)} />}
                       </div>
-                      <StatusMenu status={r.status} onChange={(k) => setStatus(r, k)} />
+                      <StatusMenu status={staged.map[r.sessionId] ?? r.status} dirty={staged.map[r.sessionId] !== undefined} onChange={(k) => staged.set(r.sessionId, r.status, k)} />
                     </div>
                   ))}
                 </div>
@@ -125,6 +132,16 @@ export default function StudentDetailModal({ student, stats, cls, requests, onCh
           </>
         )}
       </div>
+      {confirming && <ConfirmChangesModal items={changeItems} busy={saving} onConfirm={saveChanges} onClose={() => setConfirming(false)} />}
+      {discarding && (
+        <ConfirmModal
+          title="Bỏ thay đổi chưa lưu?"
+          message={`Bạn còn ${staged.count} thay đổi chưa lưu cho ${student.full_name}.`}
+          confirmText="Bỏ thay đổi và đóng" cancelText="Tiếp tục sửa" danger
+          onConfirm={() => { staged.clear(); setDiscarding(false); onClose(); }}
+          onClose={() => setDiscarding(false)}
+        />
+      )}
       {openRequest && (
         <RequestDetailModal
           request={openRequest}

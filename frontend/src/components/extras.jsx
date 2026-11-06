@@ -62,7 +62,7 @@ export function AttachmentCount({ count }) {
 }
 
 /* Chọn trạng thái điểm danh bằng một menu nhỏ, thay cho 4 nút icon mỗi dòng */
-export function StatusMenu({ status, onChange }) {
+export function StatusMenu({ status, onChange, dirty }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -76,7 +76,7 @@ export function StatusMenu({ status, onChange }) {
 
   return (
     <div className="menu-wrap" ref={ref}>
-      <button className="status-trigger" onClick={() => setOpen(!open)} aria-haspopup="listbox" aria-expanded={open}>
+      <button className={`status-trigger ${dirty ? 'dirty' : ''}`} onClick={() => setOpen(!open)} aria-haspopup="listbox" aria-expanded={open} title={dirty ? 'Chưa lưu' : undefined}>
         <StatusBadge status={status} /><ChevronDown size={14} className="muted" />
       </button>
       {open && (

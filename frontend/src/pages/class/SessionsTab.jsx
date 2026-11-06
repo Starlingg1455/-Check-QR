@@ -73,7 +73,7 @@ export default function SessionsTab({ cls, sessions, stats, onChanged }) {
                   </div>
                   {s.status === 'open'
                     ? <Badge tone="live"><span className="dot pulse" />Đang mở</Badge>
-                    : r && <div className="row hide-sm" style={{ gap: 10 }}><span className="small text-2 num">{r.present + r.late}/{r.present + r.late + r.excused + r.absent} có mặt</span><Ring value={r.rate} size={44} stroke={5} /></div>}
+                    : r && <span className="hide-sm" title={`${r.present + r.late}/${r.present + r.late + r.excused + r.absent} sinh viên có mặt`}><Ring value={r.rate} size={44} stroke={5} /></span>}
                   <Link className="btn btn-secondary btn-sm" to={`/classes/${cls.id}/sessions/${s.id}`}>
                     {s.status === 'open' ? <><QrCode size={15} />Mở QR</> : <><ClipboardCheck size={15} />Điểm danh</>}
                   </Link>

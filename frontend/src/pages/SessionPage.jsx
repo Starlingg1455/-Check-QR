@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { ArrowLeft, Maximize2, Copy, Lock, Search, Radio, Smartphone, Check, Pencil } from 'lucide-react';
 import { api } from '../api.js';
 import { StatusMenu } from '../components/extras.jsx';
+import { useStaged, useUnsavedWarning, SaveBar, ConfirmModal, ConfirmChangesModal } from '../components/staged.jsx';
 import { Card, PageHead, Loading, ErrorBox, Modal, Badge, Avatar, useLoad, useToast, fmtDateTime, fmtTime, STATUS } from '../components/ui.jsx';
 
 const ORDER = ['present', 'late', 'excused', 'absent'];
@@ -114,6 +115,12 @@ export default function SessionPage() {
   const [q, setQ] = useState('');
   const [closing, setClosing] = useState(false);
   const [filter, setFilter] = useState('all');
+  const nav = useNavigate();
+  const staged = useStaged(); // thay đổi sửa tay chưa lưu: email -> trạng thái mới
+  const [confirming, setConfirming] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [leaveTo, setLeaveTo] = useState(null); // đường dẫn muốn rời đi khi còn thay đổi chưa lưu
+  useUnsavedWarning(staged.count > 0);
 
   const isOpen = roster.data?.session.status === 'open';
 
@@ -127,20 +134,33 @@ export default function SessionPage() {
   const list = useMemo(() => {
     if (!roster.data) return [];
     return roster.data.roster
-      .filter((s) => (filter === 'all' || s.status === filter) && `${s.fullName} ${s.studentCode}`.toLowerCase().includes(q.toLowerCase()))
+      .filter((s) => (filter === 'all' || (staged.map[s.email] ?? s.status) === filter) && `${s.fullName} ${s.studentCode}`.toLowerCase().includes(q.toLowerCase()))
       .sort((a, b) => (b.checkedAt ? new Date(b.checkedAt) : 0) - (a.checkedAt ? new Date(a.checkedAt) : 0) || a.studentCode.localeCompare(b.studentCode));
-  }, [roster.data, q, filter]);
+  }, [roster.data, q, filter, staged.map]);
 
   if (roster.loading && !roster.data) return <Loading />;
   if (roster.error && !roster.data) return <ErrorBox message={roster.error} onRetry={roster.reload} />;
   const { session, summary } = roster.data;
 
-  async function setStatus(s, status) {
+  // Danh sách thay đổi để hiển thị trong hộp xác nhận
+  const changeItems = roster.data.roster
+    .filter((s) => staged.map[s.email] !== undefined)
+    .map((s) => ({ id: s.email, title: s.fullName, sub: s.studentCode, from: s.status, to: staged.map[s.email] }));
+
+  async function saveChanges() {
+    setSaving(true);
     try {
-      await api(`/attendance/sessions/${sid}/students/${encodeURIComponent(s.email)}`, { method: 'PUT', body: { status } });
+      const changes = changeItems.map((c) => ({ sessionId: Number(sid), email: c.id, status: c.to }));
+      const r = await api(`/attendance/classes/${classId}/changes`, { method: 'POST', body: { changes } });
+      toast.success(`Đã lưu ${r.applied} thay đổi điểm danh`);
+      staged.clear();
+      setConfirming(false);
       roster.refresh();
-    } catch (e) { toast.error(e.message); }
+    } catch (e) { toast.error(e.message); } finally { setSaving(false); }
   }
+  // Rời trang: nếu còn thay đổi chưa lưu thì hỏi lại
+  const guardLeave = (to) => (e) => { if (staged.count > 0) { e.preventDefault(); setLeaveTo(to); } };
+
   async function closeSession() {
     try {
       await api(`/sessions/sessions/${sid}/close`, { method: 'POST' });
@@ -155,7 +175,7 @@ export default function SessionPage() {
   return (
     <>
       <PageHead
-        back={<Link to={`/classes/${classId}?tab=sessions`} className="back-link"><ArrowLeft size={16} />{cls.data ? `${cls.data.code} · ${cls.data.name}` : 'Quay lại lớp'}</Link>}
+        back={<Link to={`/classes/${classId}?tab=sessions`} onClick={guardLeave(`/classes/${classId}?tab=sessions`)} className="back-link"><ArrowLeft size={16} />{cls.data ? `${cls.data.code} · ${cls.data.name}` : 'Quay lại lớp'}</Link>}
         title={session.title}
         subtitle={`Mở lúc ${fmtDateTime(session.openedAt)}${session.closedAt ? ` · đóng lúc ${fmtTime(session.closedAt)}` : ''}`}
         actions={isOpen
@@ -170,7 +190,7 @@ export default function SessionPage() {
           {!isOpen && (
             <div className="alert" style={{ alignItems: 'flex-start' }}>
               <Pencil size={18} style={{ flex: 'none', marginTop: 1 }} />
-              <span className="small">Buổi đã đóng nên sinh viên không quét QR được nữa. Bạn đến muộn hoặc cần chỉnh lại thì <b>bấm vào trạng thái</b> của sinh viên ở danh sách bên dưới để sửa tay (ví dụ chọn "Đi muộn").</span>
+              <span className="small">Buổi đã đóng nên sinh viên không quét QR được nữa. Bạn đến muộn hoặc cần chỉnh lại thì <b>bấm vào trạng thái</b> của sinh viên ở danh sách bên dưới để sửa tay (ví dụ chọn "Đi muộn"), rồi bấm <b>Lưu thay đổi</b>.</span>
             </div>
           )}
           <Card>
@@ -196,18 +216,18 @@ export default function SessionPage() {
 
           <section className="card table-card">
             <div className="toolbar">
-              <div className="grow"><h2>Danh sách điểm danh</h2><div className="xs muted">Bấm vào trạng thái của từng sinh viên để sửa tay</div></div>
+              <div className="grow"><h2>Danh sách điểm danh</h2>{isOpen && <div className="xs muted">Bấm vào trạng thái để sửa tay, rồi bấm Lưu thay đổi</div>}</div>
               <div className="input-icon" style={{ width: 200 }}><Search size={16} /><input className="input" placeholder="Tìm sinh viên" value={q} onChange={(e) => setQ(e.target.value)} /></div>
             </div>
             <div className="roster list">
               {list.map((s) => (
-                <div className="list-item" key={s.email} style={{ padding: '10px 16px' }}>
+                <div className={`list-item ${staged.map[s.email] !== undefined ? 'staged-row' : ''}`} key={s.email} style={{ padding: '10px 16px' }}>
                   <Avatar name={s.fullName} />
                   <div className="grow">
                     <div className="bold truncate">{s.fullName}</div>
-                    <div className="xs muted">{s.studentCode}{s.checkedAt && ` · ${fmtTime(s.checkedAt)}`}{s.source === 'qr' && ' · quét QR'}{s.source === 'manual' && ' · giảng viên sửa'}{s.source === 'request' && ' · theo đơn'}{s.source === 'import' && ' · từ Excel'}</div>
+                    <div className="xs muted">{s.studentCode}{s.checkedAt && ` · ${fmtTime(s.checkedAt)}`}{s.source === 'qr' && ' · quét QR'}{s.source === 'request' && ' · theo đơn'}{s.source === 'import' && ' · từ Excel'}</div>
                   </div>
-                  <StatusMenu status={s.status} onChange={(k) => setStatus(s, k)} />
+                  <StatusMenu status={staged.map[s.email] ?? s.status} dirty={staged.map[s.email] !== undefined} onChange={(k) => staged.set(s.email, s.status, k)} />
                 </div>
               ))}
               {list.length === 0 && <div className="center muted" style={{ padding: 32 }}>Không có sinh viên nào</div>}
@@ -216,6 +236,18 @@ export default function SessionPage() {
         </div>
       </div>
 
+      <SaveBar count={staged.count} onDiscard={staged.clear} onSave={() => setConfirming(true)} />
+
+      {confirming && <ConfirmChangesModal items={changeItems} busy={saving} onConfirm={saveChanges} onClose={() => setConfirming(false)} />}
+      {leaveTo && (
+        <ConfirmModal
+          title="Bỏ thay đổi chưa lưu?"
+          message={`Bạn còn ${staged.count} thay đổi chưa lưu. Rời trang sẽ mất các thay đổi này.`}
+          confirmText="Bỏ thay đổi và rời đi" cancelText="Ở lại để lưu" danger
+          onConfirm={() => { staged.clear(); nav(leaveTo); }}
+          onClose={() => setLeaveTo(null)}
+        />
+      )}
       {closing && (
         <Modal title="Đóng buổi điểm danh?" onClose={() => setClosing(false)} footer={
           <>

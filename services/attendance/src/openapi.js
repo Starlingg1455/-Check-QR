@@ -52,6 +52,14 @@ export const openapi = {
     '/classes/{classId}/me': {
       get: { tags: ['Điểm danh'], summary: 'Sinh viên xem lịch sử điểm danh của mình trong lớp', security: bearer, parameters: [intPath('classId')], responses: { 200: { description: 'OK' } } },
     },
+    '/classes/{classId}/changes': {
+      post: {
+        tags: ['Điểm danh'], summary: 'Lưu nhiều thay đổi sửa tay cùng lúc (giảng viên)', security: bearer, parameters: [intPath('classId')],
+        description: 'Kiểm tra toàn bộ trước khi ghi; có một thay đổi sai là từ chối cả lô (400). Ghi bằng một câu lệnh SQL nên không bao giờ ghi nửa chừng.',
+        requestBody: { required: true, ...json({ type: 'object', properties: { changes: { type: 'array', items: { type: 'object', properties: { sessionId: { type: 'integer' }, email: { type: 'string' }, status: statusEnum } } } } }) },
+        responses: { 200: { description: 'Đã lưu' }, 400: { description: 'Có thay đổi không hợp lệ, không lưu gì' } },
+      },
+    },
     '/classes/{classId}/sheet.xlsx': {
       get: { tags: ['Điểm danh bằng Excel'], summary: 'Tải file điểm danh của lớp (ma trận sinh viên x buổi)', description: 'Mỗi ô là một mã: x hoặc trống = có mặt, m = muộn, p = có phép, v = vắng. Chứa mã buổi để đối chiếu khi tải lên.', security: bearer, parameters: [intPath('classId')], responses: { 200: { description: 'File xlsx' } } },
     },

@@ -146,3 +146,22 @@ button.drill-row:focus-visible { outline-offset: -2px; }
 .request-chip:hover { border-color: var(--accent); background: var(--accent-soft); }
 .request-chip-text { flex: 1; min-width: 0; font-size: 13.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 760px) { .request-chip { flex-wrap: wrap; } .request-chip-text { flex-basis: 100%; order: 3; white-space: normal; } }
+
+/* ===== Sửa tay: trạng thái chưa lưu + thanh lưu ===== */
+.status-trigger.dirty { border-color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); }
+.staged-row { background: color-mix(in srgb, var(--warning) 9%, transparent); box-shadow: inset 3px 0 0 var(--warning); }
+.save-bar { position: sticky; bottom: 14px; z-index: 15; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding: 10px 14px; border: 1px solid var(--border-strong); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow-lg); }
+.save-bar.inline { position: static; margin: 0; width: 100%; box-shadow: none; border: 0; padding: 0; background: none; }
+.save-bar-text { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+.detail-stats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 760px) { .detail-stats.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ===== Ô số bấm được ===== */
+.tiles.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.card.tile.action { text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
+.card.tile.action:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--border-strong); }
+.tile-go { margin-left: auto; transition: transform 0.12s; }
+.card.tile.action:hover .tile-go { transform: translateX(2px); color: var(--accent); }
+.drill-link { display: inline-flex; align-items: center; gap: 2px; color: var(--accent-ink); font-weight: 600; font-size: 14px; white-space: nowrap; }
+.donut-card:hover .drill-link { text-decoration: underline; }
+@media (max-width: 760px) { .tiles.three { grid-template-columns: 1fr; } }

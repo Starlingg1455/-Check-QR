@@ -119,11 +119,15 @@ export function RateLineChart({ perSession, onSelect }) {
       pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: c.accent, pointBorderColor: c.surface, pointBorderWidth: 2,
     }],
   };
-  const options = baseOptions(c, { scales: { x: axes(c).x, y: axes(c, { min: 0, max: 100, ticks: { color: c.text2, font: { size: 14 }, callback: (v) => `${v}%` } }).y } });
+  // Trục dọc bắt đầu gần mức thấp nhất (không phí nửa biểu đồ cho khoảng 0-60%), luôn kết thúc ở 100%
+  const lowest = Math.min(...perSession.map((s) => s.rate ?? 100));
+  const yMin = Math.max(0, Math.floor((lowest - 10) / 10) * 10);
+  const options = baseOptions(c, { scales: { x: axes(c).x, y: axes(c, { min: yMin, max: 100, ticks: { color: c.text2, font: { size: 14 }, stepSize: 10, callback: (v) => `${v}%` } }).y } });
   options.plugins.legend.display = false;
   options.plugins.tooltip.callbacks = {
     title: (items) => sessionTitle(perSession[items[0].dataIndex]),
-    label: (item) => ` Tỉ lệ đi học: ${item.parsed.y}%`,
+    label: (item) => { const s = perSession[item.dataIndex]; return ` ${item.parsed.y}%  ·  ${s.present + s.late}/${s.present + s.late + s.excused + s.absent} sinh viên có mặt`; },
+    footer: () => (onSelect ? 'Bấm để xem chi tiết' : ''),
   };
   if (onSelect) {
     // Bấm vào điểm hoặc bất kỳ chỗ nào trong cột của buổi đó đều mở chi tiết buổi
@@ -171,7 +175,10 @@ export function AbsenceHistogram({ perStudent, absentLimit, onSelect }) {
   const max = Math.max(absentLimit + 2, ...perStudent.map((s) => s.absent));
   const labels = Array.from({ length: max + 1 }, (_, i) => String(i));
   const counts = labels.map((_, i) => perStudent.filter((s) => s.absent === i).length);
-  const colorOf = (i) => (i > absentLimit ? c.critical : i === absentLimit && absentLimit > 0 ? c.serious : i === absentLimit - 1 && i > 0 ? c.warning : c.good);
+  const levelAt = (i) => (i > absentLimit ? 'banned' : i === absentLimit && absentLimit > 0 ? 'danger' : i === absentLimit - 1 && i > 0 ? 'warning' : 'ok');
+  const LEVEL_TEXT = { ok: 'Bình thường', warning: 'Cần chú ý', danger: 'Sắp cấm thi', banned: 'Vượt giới hạn' };
+  const levelColor = { ok: c.good, warning: c.warning, danger: c.serious, banned: c.critical };
+  const colorOf = (i) => levelColor[levelAt(i)];
   const data = {
     labels,
     datasets: [{
@@ -183,7 +190,8 @@ export function AbsenceHistogram({ perStudent, absentLimit, onSelect }) {
   options.plugins.legend.display = false;
   options.plugins.tooltip.callbacks = {
     title: (items) => `Vắng ${items[0].label} buổi`,
-    label: (item) => ` ${item.parsed.y} sinh viên`,
+    label: (item) => ` ${item.parsed.y} sinh viên · ${LEVEL_TEXT[levelAt(item.dataIndex)]}`,
+    footer: (items) => (onSelect && counts[items[0].dataIndex] > 0 ? 'Bấm để xem danh sách' : ''),
   };
   if (onSelect) {
     options.interaction = { mode: 'nearest', intersect: false, axis: 'x' };
