@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Check, X, FileText } from 'lucide-react';
 import { api } from '../../api.js';
 import { Card, Empty, Loading, ErrorBox, Badge, Avatar, useToast, fmtDateTime } from '../../components/ui.jsx';
+import { RequestThumbs } from '../../components/extras.jsx';
 
 const TONE = { pending: ['warning', 'Chờ duyệt'], approved: ['good', 'Đã duyệt'], rejected: ['critical', 'Từ chối'] };
 
@@ -22,9 +23,9 @@ export default function RequestsTab({ requests, onChanged }) {
   }
 
   return (
-    <Card pad={false} title="Đơn xin vắng" subtitle="Duyệt đơn thì buổi đó chuyển thành “vắng có phép” và không tính vào số buổi vắng.">
+    <Card pad={false} title="Đơn xin vắng" subtitle="Duyệt đơn thì buổi đó thành “vắng có phép” và không tính vào số buổi vắng.">
       {requests.data.length === 0 ? (
-        <Empty icon={FileText} title="Chưa có đơn nào">Khi sinh viên gửi đơn xin vắng, đơn sẽ hiện ở đây.</Empty>
+        <Empty icon={FileText} title="Chưa có đơn nào">Khi sinh viên gửi đơn xin vắng, đơn (kèm ảnh minh chứng) sẽ hiện ở đây.</Empty>
       ) : (
         <div className="list">
           {requests.data.map((r) => (
@@ -37,6 +38,7 @@ export default function RequestsTab({ requests, onChanged }) {
                 </div>
                 <div className="small muted">Xin vắng buổi {r.sessionNo} · gửi lúc {fmtDateTime(r.createdAt)}</div>
                 <p className="text-2" style={{ marginTop: 6 }}>{r.reason}</p>
+                <RequestThumbs request={r} />
               </div>
               {r.status === 'pending' && (
                 <div className="row">

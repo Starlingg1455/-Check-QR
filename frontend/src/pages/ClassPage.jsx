@@ -1,23 +1,23 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BarChart3, CalendarDays, Users, FileText, Bell, Pencil, Trash2, MapPin, GraduationCap } from 'lucide-react';
-import { api } from '../api.js';
-import { PageHead, Loading, ErrorBox, Modal, useLoad, useToast } from '../components/ui.jsx';
+import { ArrowLeft, BarChart3, CalendarDays, Users, FileText, Bell, Pencil, Download, MapPin } from 'lucide-react';
+import { api, download } from '../api.js';
+import { PageHead, Loading, ErrorBox, useLoad, useToast, BtnSpinner } from '../components/ui.jsx';
 import { ClassFormModal } from './TeacherHome.jsx';
 import StatsTab from './class/StatsTab.jsx';
 import SessionsTab from './class/SessionsTab.jsx';
 import StudentsTab from './class/StudentsTab.jsx';
+import AlertsTab from './class/AlertsTab.jsx';
 import RequestsTab from './class/RequestsTab.jsx';
-import NotificationsTab from './class/NotificationsTab.jsx';
 
 export default function ClassPage() {
   const { id } = useParams();
   const nav = useNavigate();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
-  const tab = params.get('tab') || 'stats';
+  const tab = params.get('tab') || 'overview';
   const [editing, setEditing] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Dữ liệu dùng chung cho các tab
   const cls = useLoad(() => api(`/account/classes/${id}`), [id]);
@@ -31,14 +31,22 @@ export default function ClassPage() {
   if (cls.error) return <ErrorBox message={cls.error} onRetry={cls.reload} />;
   const c = cls.data;
   const pending = (requests.data || []).filter((r) => r.status === 'pending').length;
+  const atRisk = stats.data ? stats.data.perStudent.filter((s) => s.level !== 'ok').length : 0;
 
   const tabs = [
-    { key: 'stats', label: 'Thống kê', icon: BarChart3 },
+    { key: 'overview', label: 'Tổng quan', icon: BarChart3 },
     { key: 'sessions', label: 'Buổi học', icon: CalendarDays },
     { key: 'students', label: 'Sinh viên', icon: Users },
+    { key: 'alerts', label: 'Cảnh báo', icon: Bell, badge: atRisk },
     { key: 'requests', label: 'Đơn xin vắng', icon: FileText, badge: pending },
-    { key: 'notifications', label: 'Email cảnh báo', icon: Bell },
   ];
+  const go = (key) => setParams(key === 'overview' ? {} : { tab: key });
+
+  async function exportExcel() {
+    setExporting(true);
+    try { await download(`/statistics/classes/${c.id}/export.xlsx`, `thong-ke-${c.code}.xlsx`); toast.success('Đã tải file Excel'); }
+    catch (e) { toast.error(e.message); } finally { setExporting(false); }
+  }
 
   async function removeClass() {
     try {
@@ -58,41 +66,37 @@ export default function ClassPage() {
             <span className="class-code">{c.code}</span>
             {c.semester && <span>{c.semester}</span>}
             {c.room && <span className="row" style={{ gap: 5 }}><MapPin size={14} />{c.room}</span>}
-            <span className="row" style={{ gap: 5 }}><GraduationCap size={15} />{c.student_count} sinh viên</span>
           </span>
         }
         actions={
           <>
-            <button className="btn btn-secondary" onClick={() => setEditing(true)}><Pencil size={16} />Sửa lớp</button>
-            <button className="btn btn-danger btn-icon" onClick={() => setDeleting(true)} aria-label="Xoá lớp"><Trash2 size={16} /></button>
+            <button className="btn btn-secondary" onClick={exportExcel} disabled={exporting}>{exporting ? <BtnSpinner /> : <Download size={16} />}<span className="hide-sm">Xuất Excel</span></button>
+            <button className="btn btn-secondary" onClick={() => setEditing(true)}><Pencil size={16} /><span className="hide-sm">Sửa lớp</span></button>
           </>
         }
       />
 
       <div className="tabs" role="tablist">
         {tabs.map((t) => (
-          <button key={t.key} role="tab" aria-selected={tab === t.key} className={`tab ${tab === t.key ? 'on' : ''}`} onClick={() => setParams(t.key === 'stats' ? {} : { tab: t.key })}>
+          <button key={t.key} role="tab" aria-selected={tab === t.key} className={`tab ${tab === t.key ? 'on' : ''}`} onClick={() => go(t.key)}>
             <t.icon size={17} />{t.label}{t.badge > 0 && <span className="tab-count">{t.badge}</span>}
           </button>
         ))}
       </div>
 
-      {tab === 'stats' && <StatsTab cls={c} stats={stats} onGoStudents={() => setParams({ tab: 'students' })} />}
+      {tab === 'overview' && <StatsTab stats={stats} atRisk={atRisk} onGoAlerts={() => go('alerts')} onGoStudents={() => go('students')} />}
       {tab === 'sessions' && <SessionsTab cls={c} sessions={sessions} stats={stats.data} onChanged={reloadAll} />}
-      {tab === 'students' && <StudentsTab cls={c} onChanged={reloadAll} />}
+      {tab === 'students' && <StudentsTab cls={c} stats={stats.data} onChanged={reloadAll} />}
+      {tab === 'alerts' && <AlertsTab cls={c} stats={stats} />}
       {tab === 'requests' && <RequestsTab requests={requests} onChanged={reloadAll} />}
-      {tab === 'notifications' && <NotificationsTab cls={c} stats={stats.data} />}
 
-      {editing && <ClassFormModal initial={c} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); reloadAll(); }} />}
-      {deleting && (
-        <Modal title="Xoá lớp này?" onClose={() => setDeleting(false)} footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setDeleting(false)}>Huỷ</button>
-            <button className="btn btn-primary" style={{ background: 'var(--critical)' }} onClick={removeClass}>Xoá lớp</button>
-          </>
-        }>
-          <p className="text-2">Lớp <b>{c.code}</b> và danh sách sinh viên sẽ bị xoá. Không thể hoàn tác.</p>
-        </Modal>
+      {editing && (
+        <ClassFormModal
+          initial={c}
+          onClose={() => setEditing(false)}
+          onSaved={() => { setEditing(false); reloadAll(); }}
+          onDelete={removeClass}
+        />
       )}
     </>
   );

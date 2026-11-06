@@ -56,9 +56,13 @@ export const openapi = {
       get: { tags: ['Đơn xin vắng'], summary: 'Danh sách đơn (giảng viên: theo classId; sinh viên: đơn của mình)', security: bearer, parameters: [{ name: 'classId', in: 'query', schema: { type: 'integer' } }], responses: { 200: { description: 'OK', ...json({ type: 'array', items: { $ref: '#/components/schemas/Request' } }) } } },
       post: {
         tags: ['Đơn xin vắng'], summary: 'Sinh viên gửi đơn xin vắng cho một buổi', security: bearer,
-        requestBody: { required: true, ...json({ type: 'object', properties: { classId: { type: 'integer' }, sessionId: { type: 'integer' }, reason: { type: 'string' } } }) },
+        description: 'Gửi multipart/form-data (hoặc JSON nếu không có ảnh). Đính kèm tối đa 3 ảnh minh chứng JPG/PNG/WebP, mỗi ảnh tối đa 3MB.',
+        requestBody: { required: true, content: { 'multipart/form-data': { schema: { type: 'object', properties: { classId: { type: 'integer' }, sessionId: { type: 'integer' }, reason: { type: 'string' }, files: { type: 'array', items: { type: 'string', format: 'binary' } } } } }, 'application/json': { schema: { type: 'object', properties: { classId: { type: 'integer' }, sessionId: { type: 'integer' }, reason: { type: 'string' } } } } } },
         responses: { 201: { description: 'Đã gửi' }, 409: { description: 'Đã có đơn cho buổi này' } },
       },
+    },
+    '/requests/{id}/files/{fileId}': {
+      get: { tags: ['Đơn xin vắng'], summary: 'Xem ảnh minh chứng (giảng viên của lớp hoặc sinh viên gửi đơn)', security: bearer, parameters: [intPath('id'), intPath('fileId')], responses: { 200: { description: 'Ảnh' }, 403: { description: 'Không có quyền' } } },
     },
     '/requests/{id}': {
       put: {

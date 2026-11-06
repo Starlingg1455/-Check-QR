@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { ArrowLeft, Maximize2, Copy, Lock, Search, Radio, Smartphone, Check } from 'lucide-react';
 import { api } from '../api.js';
+import { StatusMenu } from '../components/extras.jsx';
 import { Card, PageHead, Loading, ErrorBox, Modal, Badge, Avatar, useLoad, useToast, fmtDateTime, fmtTime, STATUS } from '../components/ui.jsx';
 
 const ORDER = ['present', 'late', 'excused', 'absent'];
@@ -200,16 +201,7 @@ export default function SessionPage() {
                     <div className="bold truncate">{s.fullName}</div>
                     <div className="xs muted">{s.studentCode}{s.checkedAt && ` · ${fmtTime(s.checkedAt)}`}{s.source === 'qr' && ' · quét QR'}{s.source === 'manual' && ' · giảng viên sửa'}{s.source === 'request' && ' · theo đơn'}</div>
                   </div>
-                  <div className="status-pick" role="group" aria-label={`Trạng thái của ${s.fullName}`}>
-                    {ORDER.map((k) => {
-                      const S = STATUS[k];
-                      return (
-                        <button key={k} className={`${k} ${s.status === k && (s.recorded || k === 'absent') ? 'on' : ''}`} title={S.label} aria-label={S.label} aria-pressed={s.status === k} onClick={() => s.status !== k && setStatus(s, k)}>
-                          <S.icon size={16} />
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <StatusMenu status={s.status} onChange={(k) => setStatus(s, k)} />
                 </div>
               ))}
               {list.length === 0 && <div className="center muted" style={{ padding: 32 }}>Không có sinh viên nào</div>}

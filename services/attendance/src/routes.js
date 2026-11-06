@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { requireAuth, requireRole } from './auth.js';
 import { HttpError, callService } from './http.js';
 import { sendMail, mailEnabled } from './mailer.js';
@@ -7,6 +8,11 @@ const ACCOUNT_URL = process.env.ACCOUNT_URL || 'http://localhost:4001';
 const SESSION_URL = process.env.SESSION_URL || 'http://localhost:4002';
 const STATISTICS_URL = process.env.STATISTICS_URL || 'http://localhost:4004';
 const LATE_MINUTES = Number(process.env.LATE_MINUTES || 15);
+
+// Ảnh minh chứng: tối đa 3 ảnh/đơn, mỗi ảnh tối đa 3MB (trình duyệt đã nén trước khi gửi)
+const MAX_FILES = 3;
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 3 * 1024 * 1024, files: MAX_FILES } });
 
 const STATUSES = ['present', 'late', 'excused', 'absent'];
 
@@ -22,7 +28,8 @@ const mapRecord = (r) => ({
   checkedAt: r.checked_at,
 });
 
-const mapRequest = (q) => ({
+const mapRequest = (q, files = []) => ({
+  files,
   id: q.id,
   classId: q.class_id,
   sessionId: q.session_id,
@@ -49,6 +56,17 @@ export function createRoutes(db) {
     const cls = await getClass(session.classId, token);
     if (!cls.isOwner) throw new HttpError(403, 'Chỉ giảng viên của lớp được thực hiện');
     return { session, cls };
+  }
+
+  // Lấy thông tin (không gồm nội dung) các ảnh đính kèm rồi gắn vào từng đơn
+  async function mapRequestsWithFiles(rows) {
+    if (rows.length === 0) return [];
+    const marks = rows.map((_, i) => '$' + (i + 1)).join(',');
+    const files = await db.query(
+      `SELECT id, request_id, filename, mime, size FROM attendance.request_files WHERE request_id IN (${marks}) ORDER BY id`,
+      rows.map((q) => q.id),
+    );
+    return rows.map((q) => mapRequest(q, files.filter((f) => f.request_id === q.id).map((f) => ({ id: f.id, name: f.filename, mime: f.mime, size: f.size }))));
   }
 
   // Ghi/đè một bản ghi điểm danh
@@ -155,7 +173,7 @@ export function createRoutes(db) {
       [cls.id, req.user.email],
     );
     const byId = new Map(records.map((x) => [x.session_id, x]));
-    const reqBySession = new Map(requests.map((x) => [x.session_id, x]));
+    const reqBySession = new Map((await mapRequestsWithFiles(requests)).map((x) => [x.sessionId, x]));
 
     const history = sessions.map((s) => {
       const rec = byId.get(s.id);
@@ -164,7 +182,7 @@ export function createRoutes(db) {
         // Buổi còn đang mở mà chưa điểm danh thì chưa tính là vắng
         attendance: rec ? rec.status : s.status === 'open' ? 'pending' : 'absent',
         checkedAt: rec ? rec.checked_at : null,
-        request: reqBySession.has(s.id) ? mapRequest(reqBySession.get(s.id)) : null,
+        request: reqBySession.get(s.id) || null,
       };
     });
     const closed = history.filter((h) => h.status === 'closed');
@@ -182,8 +200,12 @@ export function createRoutes(db) {
   });
 
   // ---------- Đơn xin vắng ----------
-  r.post('/requests', requireAuth, requireRole('student'), async (req, res) => {
+  r.post('/requests', requireAuth, requireRole('student'), upload.array('files', MAX_FILES), async (req, res) => {
     const { classId, sessionId, reason } = req.body || {};
+    const files = req.files || [];
+    for (const f of files) {
+      if (!ALLOWED_MIME.includes(f.mimetype)) throw new HttpError(400, 'Chỉ nhận ảnh JPG, PNG hoặc WebP');
+    }
     if (!String(reason || '').trim()) throw new HttpError(400, 'Vui lòng nhập lý do');
     const cls = await getClass(classId, req.token);
     const session = await getSession(sessionId, req.token);
@@ -201,7 +223,13 @@ export function createRoutes(db) {
        VALUES ($1,$2,$3,lower($4),$5,$6,$7) RETURNING *`,
       [cls.id, session.id, session.sessionNo, req.user.email, me.student_code, me.full_name, String(reason).trim()],
     );
-    res.status(201).json(mapRequest(rows[0]));
+    for (const f of files) {
+      await db.query(
+        'INSERT INTO attendance.request_files (request_id, filename, mime, size, data) VALUES ($1,$2,$3,$4,$5)',
+        [rows[0].id, Buffer.from(f.originalname, 'latin1').toString('utf8').slice(0, 120), f.mimetype, f.size, f.buffer],
+      );
+    }
+    res.status(201).json((await mapRequestsWithFiles(rows))[0]);
   });
 
   // Giảng viên: xem đơn của một lớp. Sinh viên: xem đơn của chính mình.
@@ -214,13 +242,13 @@ export function createRoutes(db) {
          ORDER BY (status='pending') DESC, created_at DESC`,
         [cls.id],
       );
-      return res.json(rows.map(mapRequest));
+      return res.json(await mapRequestsWithFiles(rows));
     }
     const rows = await db.query(
       'SELECT * FROM attendance.absence_requests WHERE student_email=lower($1) ORDER BY created_at DESC',
       [req.user.email],
     );
-    res.json(rows.map(mapRequest));
+    res.json(await mapRequestsWithFiles(rows));
   });
 
   // Giảng viên duyệt/từ chối. Duyệt => buổi đó chuyển thành "vắng có phép"
@@ -243,7 +271,25 @@ export function createRoutes(db) {
         status: 'excused', source: 'request', note: `Đơn xin vắng: ${q.reason}`,
       });
     }
-    res.json(mapRequest(rows[0]));
+    res.json((await mapRequestsWithFiles(rows))[0]);
+  });
+
+  // Xem ảnh minh chứng: giảng viên của lớp hoặc chính sinh viên gửi đơn
+  r.get('/requests/:id/files/:fileId', requireAuth, async (req, res) => {
+    const found = await db.query('SELECT * FROM attendance.absence_requests WHERE id=$1', [Number(req.params.id)]);
+    const q = found[0];
+    if (!q) throw new HttpError(404, 'Không tìm thấy đơn');
+    if (req.user.role === 'teacher') {
+      const cls = await getClass(q.class_id, req.token);
+      if (!cls.isOwner) throw new HttpError(403, 'Không có quyền xem');
+    } else if (q.student_email !== req.user.email.toLowerCase()) {
+      throw new HttpError(403, 'Không có quyền xem');
+    }
+    const rows = await db.query('SELECT mime, data FROM attendance.request_files WHERE id=$1 AND request_id=$2', [Number(req.params.fileId), q.id]);
+    if (!rows[0]) throw new HttpError(404, 'Không tìm thấy ảnh');
+    res.setHeader('Content-Type', rows[0].mime);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.send(Buffer.from(rows[0].data));
   });
 
   // ---------- Email cảnh báo vắng nhiều ----------

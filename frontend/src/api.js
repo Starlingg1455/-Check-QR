@@ -38,6 +38,13 @@ export async function api(path, options) {
   return data;
 }
 
+// Tải ảnh có kèm token, trả về đường dẫn tạm dùng cho thẻ <img>
+export async function fetchBlobUrl(path) {
+  const res = await request(path);
+  if (!res.ok) throw new Error('Không tải được ảnh');
+  return URL.createObjectURL(await res.blob());
+}
+
 // Tải file (Excel) có kèm token đăng nhập
 export async function download(path, filename) {
   const res = await request(path);

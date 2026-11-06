@@ -41,6 +41,18 @@ await db.exec(`
     reviewed_at TIMESTAMPTZ
   );
 
+  -- Ảnh minh chứng đính kèm đơn xin vắng (ảnh đã được nén ở trình duyệt nên nhỏ)
+  CREATE TABLE IF NOT EXISTS attendance.request_files (
+    id SERIAL PRIMARY KEY,
+    request_id INT NOT NULL,
+    filename TEXT NOT NULL,
+    mime TEXT NOT NULL,
+    size INT NOT NULL,
+    data BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS idx_request_files_req ON attendance.request_files (request_id);
+
   CREATE TABLE IF NOT EXISTS attendance.notifications (
     id SERIAL PRIMARY KEY,
     class_id INT NOT NULL,

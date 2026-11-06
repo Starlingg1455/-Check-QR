@@ -5,13 +5,14 @@ import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { PageHead, StatTile, Ring, Empty, Loading, ErrorBox, Modal, Field, useLoad, useToast, Badge, pct } from '../components/ui.jsx';
 
-export function ClassFormModal({ initial, onClose, onSaved }) {
+export function ClassFormModal({ initial, onClose, onSaved, onDelete }) {
   const toast = useToast();
   const [f, setF] = useState({
     code: initial?.code || '', name: initial?.name || '', room: initial?.room || '', semester: initial?.semester || '',
     totalSessions: initial?.total_sessions || 15, maxAbsentPercent: initial?.max_absent_percent ?? 20,
   });
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const limit = Math.floor((Number(f.totalSessions) * Number(f.maxAbsentPercent)) / 100);
 
@@ -48,6 +49,14 @@ export function ClassFormModal({ initial, onClose, onSaved }) {
           <button className="btn btn-primary" disabled={busy}>{initial ? 'Lưu thay đổi' : 'Tạo lớp'}</button>
         </div>
       </form>
+      {onDelete && (
+        <div className="danger-zone">
+          <div className="small"><b>Xoá lớp này</b><div className="muted">Xoá cả danh sách sinh viên. Không thể hoàn tác.</div></div>
+          {confirmDelete
+            ? <button className="btn btn-primary btn-sm" style={{ background: 'var(--critical)' }} onClick={onDelete}>Chắc chắn xoá</button>
+            : <button className="btn btn-danger btn-sm" onClick={() => setConfirmDelete(true)}>Xoá lớp</button>}
+        </div>
+      )}
     </Modal>
   );
 }
