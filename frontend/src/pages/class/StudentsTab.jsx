@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
-import { Upload, UserPlus, Trash2, Download, Users, Search, ArrowUpDown } from 'lucide-react';
+import { Upload, UserPlus, Trash2, Download, Users, Search, ArrowUpDown, ChevronRight } from 'lucide-react';
 import { api, download } from '../../api.js';
+import StudentDetailModal from './StudentDetailModal.jsx';
 import { Empty, Loading, ErrorBox, Modal, Field, LevelBadge, useLoad, useToast, Avatar, BtnSpinner, pct } from '../../components/ui.jsx';
 
 /* Tab Sinh viên: một bảng duy nhất vừa quản lý danh sách vừa xem tình hình đi học */
-export default function StudentsTab({ cls, stats, onChanged }) {
+export default function StudentsTab({ cls, stats, requests, onChanged }) {
   const toast = useToast();
   const fileRef = useRef(null);
   const list = useLoad(() => api(`/account/classes/${cls.id}/students`), [cls.id]);
@@ -15,6 +16,7 @@ export default function StudentsTab({ cls, stats, onChanged }) {
   const [q, setQ] = useState('');
   const [sort, setSort] = useState({ key: 'student_code', dir: 1 });
   const [toDelete, setToDelete] = useState(null);
+  const [detail, setDetail] = useState(null);
 
   const changed = () => { list.refresh(); onChanged(); };
 
@@ -115,13 +117,16 @@ export default function StudentsTab({ cls, stats, onChanged }) {
               </thead>
               <tbody>
                 {rows.map((s) => (
-                  <tr key={s.id}>
+                  <tr key={s.id} className="row-link" tabIndex={0} onClick={() => setDetail(s)} onKeyDown={(e) => e.key === 'Enter' && setDetail(s)} aria-label={`Xem chi tiết ${s.full_name}`}>
                     <td><div className="row"><Avatar name={s.full_name} /><div style={{ minWidth: 0 }}><div className="bold truncate">{s.full_name}</div><div className="xs muted truncate">{s.email}</div></div></div></td>
                     <td className="num text-2 hide-sm">{s.student_code}</td>
                     <td className="right num bold">{s.st ? s.st.absent : '—'}</td>
                     <td className="right num hide-sm">{s.st ? pct(s.st.rate) : '—'}</td>
                     <td className="hide-sm">{s.st && stats.closedSessions > 0 ? <LevelBadge level={s.st.level} /> : <span className="muted small">Chưa có dữ liệu</span>}</td>
-                    <td className="right"><button className="btn btn-ghost btn-icon btn-sm" aria-label={`Xoá ${s.full_name}`} onClick={() => setToDelete(s)}><Trash2 size={16} /></button></td>
+                    <td className="right" style={{ whiteSpace: 'nowrap' }}>
+                      <button className="btn btn-ghost btn-icon btn-sm" aria-label={`Xoá ${s.full_name}`} onClick={(e) => { e.stopPropagation(); setToDelete(s); }}><Trash2 size={16} /></button>
+                      <ChevronRight size={18} className="muted row-chevron" />
+                    </td>
                   </tr>
                 ))}
                 {rows.length === 0 && <tr><td colSpan={6} className="center muted" style={{ padding: 32 }}>Không tìm thấy sinh viên phù hợp</td></tr>}
@@ -131,6 +136,7 @@ export default function StudentsTab({ cls, stats, onChanged }) {
         )}
       </section>
 
+      {detail && <StudentDetailModal student={detail} stats={stats} cls={cls} requests={requests} onClose={() => setDetail(null)} />}
       {adding && (
         <Modal title="Thêm sinh viên" onClose={() => setAdding(false)}>
           <form className="stack" onSubmit={addOne}>

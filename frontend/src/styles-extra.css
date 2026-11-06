@@ -116,3 +116,20 @@
 .drill-row:last-child { border-bottom: 0; }
 
 .chart-box.tall { height: calc(352px * var(--ui-zoom, 1)); }
+
+/* ===== Chi tiết sinh viên ===== */
+.row-link { cursor: pointer; }
+.row-link:focus-visible { outline-offset: -2px; }
+.row-chevron { vertical-align: middle; margin-left: 4px; transition: transform 0.12s; }
+.row-link:hover .row-chevron { transform: translateX(2px); color: var(--accent); }
+.detail-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.detail-stats > div { padding: 12px 8px; border-radius: 12px; text-align: center; background: var(--surface-2); border: 1px solid var(--border); }
+.detail-stats b { display: block; font-size: 24px; letter-spacing: -0.02em; line-height: 1.2; }
+.detail-stats span { font-size: 12.5px; color: var(--text-2); }
+.detail-stats .bad { background: color-mix(in srgb, var(--critical) 10%, var(--surface)); border-color: color-mix(in srgb, var(--critical) 35%, transparent); }
+.detail-stats .bad b { color: var(--critical-ink); }
+.strip { display: flex; flex-wrap: wrap; gap: 5px; }
+.strip > span { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; }
+.strip > span i { font-style: normal; font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25); }
+.detail-request { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); }
+@media (max-width: 760px) { .detail-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

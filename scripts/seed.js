@@ -111,23 +111,37 @@ for (let n = 1; n <= SESSIONS; n++) {
   console.log(`Đã tạo buổi ${n}`);
 }
 
-// 4) Một đơn xin vắng đang chờ duyệt (để thấy chức năng duyệt đơn)
-const sv = await call('/account/auth/dev-login', { method: 'POST', body: { email: students[4].email, name: students[4].name, role: 'student' } });
+// 4) Hai đơn xin vắng đang chờ duyệt (để thấy chức năng duyệt đơn).
+// Chỉ chọn sinh viên THỰC SỰ đang vắng ở buổi đó, cho dữ liệu demo hợp lý.
 const sessions = await call(`/sessions/sessions?classId=${cls.id}`, { token: T });
-// Đơn 1: có ảnh minh chứng (giấy khám bệnh)
+async function absentStudent(session, skipEmails = []) {
+  const { roster } = await call(`/attendance/sessions/${session.id}/roster`, { token: T });
+  const found = roster.find((r) => r.status === 'absent' && !skipEmails.includes(r.email));
+  if (!found) throw new Error(`Không có sinh viên vắng ở ${session.title} để tạo đơn demo`);
+  return found;
+}
+const loginAs = (s) => call('/account/auth/dev-login', { method: 'POST', body: { email: s.email, name: s.fullName, role: 'student' } });
+
+// Đơn 1: có ảnh minh chứng (giấy khám bệnh), buổi gần nhất
+const lastSession = sessions[sessions.length - 1];
+const first = await absentStudent(lastSession);
+const svFirst = await loginAs(first);
 const requestForm = new FormData();
 requestForm.append('classId', cls.id);
-requestForm.append('sessionId', sessions[sessions.length - 1].id);
+requestForm.append('sessionId', lastSession.id);
 requestForm.append('reason', 'Em bị sốt cao nên không thể đến lớp được ạ. Em xin gửi kèm giấy khám bệnh của bệnh viện.');
 requestForm.append('files', new Blob([makeDemoPng()], { type: 'image/png' }), 'giay-kham-benh.png');
-await call('/attendance/requests', { token: sv.token, method: 'POST', form: requestForm });
+await call('/attendance/requests', { token: svFirst.token, method: 'POST', form: requestForm });
 
-// Đơn 2: không có ảnh (để thấy cả hai trường hợp)
-const sv2 = await call('/account/auth/dev-login', { method: 'POST', body: { email: students[13].email, name: students[13].name, role: 'student' } });
+// Đơn 2: không có ảnh (để thấy cả hai trường hợp), một buổi trước đó, sinh viên khác
+const earlier = sessions[sessions.length - 3];
+const second = await absentStudent(earlier, [first.email]);
+const svSecond = await loginAs(second);
 await call('/attendance/requests', {
-  token: sv2.token, method: 'POST',
-  body: { classId: cls.id, sessionId: sessions[sessions.length - 3].id, reason: 'Em có việc gia đình đột xuất nên xin phép nghỉ buổi này ạ.' },
+  token: svSecond.token, method: 'POST',
+  body: { classId: cls.id, sessionId: earlier.id, reason: 'Em có việc gia đình đột xuất nên xin phép nghỉ buổi này ạ.' },
 });
+console.log(`Đơn xin vắng demo: ${first.fullName} (${lastSession.title}, có ảnh), ${second.fullName} (${earlier.title}).`);
 
 console.log('\nXong! Đăng nhập thử nghiệm bằng:');
 console.log('  Giảng viên: gv@demo.vn');
