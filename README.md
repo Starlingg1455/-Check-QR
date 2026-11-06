@@ -53,7 +53,22 @@ npm run seed              # (tuỳ chọn) tạo lớp mẫu + 10 buổi dữ li
 - Chưa đặt `DATABASE_URL` thì mỗi service tự dùng PGlite (Postgres chạy trong Node), lưu ở `.data/`. Xoá thư mục này là về dữ liệu trống.
 - Đăng nhập thử nghiệm (khi `ALLOW_DEV_LOGIN=true`): `gv@demo.vn` (giảng viên), `sv01@demo.vn` … `sv30@demo.vn` (sinh viên).
 - Swagger tổng hợp: <http://localhost:4000/docs>. Mỗi service cũng có `/docs` riêng.
-- Kiểm tra tự động luồng chính (sau khi seed): `node scripts/smoke-test.js`.
+- Kiểm tra tự động (sau khi seed): `node scripts/smoke-test.js` (luồng chính), `node scripts/test-attachments.mjs` (ảnh minh chứng), `node scripts/test-sheet.mjs` (điểm danh Excel). Các bài test này sẽ thay đổi dữ liệu demo, nên xoá `.data` và seed lại sau khi chạy.
+
+### Điểm danh bằng file Excel (đồng bộ)
+Tab **Buổi học** → **Điểm danh bằng Excel**: tải file ma trận (sinh viên x buổi), sửa mã trong ô rồi tải lên.
+
+| Mã | Ý nghĩa |
+|---|---|
+| `x` hoặc để trống | Có mặt |
+| `m` | Đi muộn |
+| `p` | Vắng có phép |
+| `v` | Vắng không phép |
+
+File phải **đồng bộ 100%** với hệ thống, nếu không sẽ bị từ chối **cả file** (không nhận một phần) và hiện danh sách ô lỗi:
+mã không hợp lệ, MSSV lạ/thiếu/lặp, thiếu hoặc thừa cột buổi (lớp có buổi mới), file của lớp khác, file Excel không phải file mẫu.
+File hợp lệ sẽ cho **xem trước** các ô thay đổi, bấm áp dụng mới ghi (một câu lệnh SQL duy nhất nên không bao giờ ghi nửa chừng).
+Nút **Xuất Excel** của thống kê dùng cùng quy ước mã.
 
 ### Thử quét QR bằng điện thoại ở máy local
 Camera chỉ chạy trên HTTPS hoặc localhost. Dùng `ngrok http 5173` (hoặc Cloudflare Tunnel) rồi mở link https đó trên cả laptop và điện thoại.

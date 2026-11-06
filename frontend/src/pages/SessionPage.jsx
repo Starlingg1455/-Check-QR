@@ -199,7 +199,7 @@ export default function SessionPage() {
                   <Avatar name={s.fullName} />
                   <div className="grow">
                     <div className="bold truncate">{s.fullName}</div>
-                    <div className="xs muted">{s.studentCode}{s.checkedAt && ` · ${fmtTime(s.checkedAt)}`}{s.source === 'qr' && ' · quét QR'}{s.source === 'manual' && ' · giảng viên sửa'}{s.source === 'request' && ' · theo đơn'}</div>
+                    <div className="xs muted">{s.studentCode}{s.checkedAt && ` · ${fmtTime(s.checkedAt)}`}{s.source === 'qr' && ' · quét QR'}{s.source === 'manual' && ' · giảng viên sửa'}{s.source === 'request' && ' · theo đơn'}{s.source === 'import' && ' · từ Excel'}</div>
                   </div>
                   <StatusMenu status={s.status} onChange={(k) => setStatus(s, k)} />
                 </div>

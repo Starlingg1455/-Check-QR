@@ -34,7 +34,11 @@ export async function api(path, options) {
   const res = await request(path, options);
   if (res.status === 204) return null;
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error || `Có lỗi xảy ra (${res.status})`);
+  if (!res.ok) {
+    const err = new Error(data?.error || `Có lỗi xảy ra (${res.status})`);
+    err.data = data; // giữ lại chi tiết (vd danh sách ô lỗi khi import Excel)
+    throw err;
+  }
   return data;
 }
 

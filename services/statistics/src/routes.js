@@ -6,7 +6,8 @@ import { computeClassStats } from './compute.js';
 
 const ACCOUNT_URL = process.env.ACCOUNT_URL || 'http://localhost:4001';
 const LEVEL_TEXT = { ok: 'Bình thường', warning: 'Cần chú ý', danger: 'Sắp cấm thi', banned: 'Vượt giới hạn' };
-const CODE = { present: 'P', late: 'T', excused: 'V*', absent: 'V' };
+// Cùng quy ước mã với file điểm danh Excel: x = có mặt, m = muộn, p = có phép, v = vắng
+const CODE = { present: 'x', late: 'm', excused: 'p', absent: 'v' };
 
 export function createRoutes() {
   const r = Router();
@@ -125,7 +126,7 @@ export function createRoutes() {
       { header: 'Tổng vắng', width: 11 },
     ];
     header(w4);
-    const fills = { P: 'FFDCFCE7', T: 'FFFEF3C7', 'V*': 'FFDBEAFE', V: 'FFFEE2E2' };
+    const fills = { x: 'FFDCFCE7', m: 'FFFEF3C7', p: 'FFDBEAFE', v: 'FFFEE2E2' };
     s.perStudent.forEach((st) => {
       const cells = closed.map((c) => CODE[statusOf.get(`${c.id}|${st.email.toLowerCase()}`) || 'absent']);
       const row = w4.addRow([st.studentCode, st.fullName, ...cells, st.absent]);
@@ -136,7 +137,7 @@ export function createRoutes() {
       });
     });
     w4.addRow([]);
-    w4.addRow(['Chú thích: P = có mặt, T = đi trễ, V* = vắng có phép, V = vắng']);
+    w4.addRow(['Chú thích: x = có mặt, m = muộn, p = có phép, v = vắng']);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="thong-ke-${encodeURIComponent(s.class.code)}.xlsx"`);
