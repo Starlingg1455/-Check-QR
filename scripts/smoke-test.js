@@ -53,7 +53,7 @@ const scan2 = await call('/attendance/scan', { token: sv, method: 'POST', body: 
 check('Quét lần 2 báo đã điểm danh', scan2.data.alreadyCheckedIn === true);
 
 const roster = (await call(`/attendance/sessions/${sessionId}/roster`, { token: gv })).data;
-check('Bảng điểm danh buổi', roster.summary.present === 1 && roster.summary.total === 30, JSON.stringify(roster.summary));
+check('Bảng điểm danh buổi', roster.summary.present === 1 && roster.summary.total === 40, JSON.stringify(roster.summary));
 
 const edit = await call(`/attendance/sessions/${sessionId}/students/sv02%40demo.vn`, { token: gv, method: 'PUT', body: { status: 'late', note: 'Kẹt xe' } });
 check('Giảng viên sửa tay (đi trễ)', edit.status === 200 && edit.data.status === 'late');
@@ -75,7 +75,7 @@ check('Duyệt đơn => vắng có phép', ok.data.status === 'approved');
 
 // Thống kê
 const stats = (await call(`/statistics/classes/${classId}/overview`, { token: gv })).data;
-check('Thống kê lớp', stats.closedSessions === 11 && stats.perSession.length === 11 && stats.perStudent.length === 30,
+check('Thống kê lớp', stats.closedSessions === 16 && stats.perSession.length === 16 && stats.perStudent.length === 40,
   `(tỉ lệ TB ${stats.avgRate}%, giới hạn vắng ${stats.absentLimit}, mức: ${JSON.stringify(stats.levels)})`);
 const risk = (await call(`/statistics/classes/${classId}/risk`, { token: gv })).data;
 check('Danh sách sắp cấm thi', risk.students.length > 0, `(${risk.students.length} SV)`);
@@ -90,7 +90,7 @@ check('Gửi email cảnh báo', warn.status === 200 && warn.data.count === risk
 
 // Lịch sử của sinh viên
 const me = (await call(`/attendance/classes/${classId}/me`, { token: sv })).data;
-check('Sinh viên xem lịch sử của mình', me.history.length === 11 && me.summary.sessions === 11, `(tỉ lệ ${me.summary.rate}%)`);
+check('Sinh viên xem lịch sử của mình', me.history.length === 16 && me.summary.sessions === 16, `(tỉ lệ ${me.summary.rate}%)`);
 
 // Swagger
 for (const p of ['account', 'sessions', 'attendance', 'statistics']) {

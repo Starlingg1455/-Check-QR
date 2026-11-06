@@ -1,18 +1,15 @@
-import { useMemo, useRef, useState } from 'react';
-import { Upload, UserPlus, Trash2, Download, Users, Search, ArrowUpDown, ChevronRight } from 'lucide-react';
-import { api, download } from '../../api.js';
+import { useMemo, useState } from 'react';
+import { UserPlus, Trash2, Users, Search, ArrowUpDown, ChevronRight } from 'lucide-react';
+import { api } from '../../api.js';
 import StudentDetailModal from './StudentDetailModal.jsx';
-import { Empty, Loading, ErrorBox, Modal, Field, LevelBadge, useLoad, useToast, Avatar, BtnSpinner, pct } from '../../components/ui.jsx';
+import { Empty, Loading, ErrorBox, Modal, Field, LevelBadge, useLoad, useToast, Avatar, pct } from '../../components/ui.jsx';
 
 /* Tab Sinh viên: một bảng duy nhất vừa quản lý danh sách vừa xem tình hình đi học */
 export default function StudentsTab({ cls, stats, requests, onChanged }) {
   const toast = useToast();
-  const fileRef = useRef(null);
   const list = useLoad(() => api(`/account/classes/${cls.id}/students`), [cls.id]);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ studentCode: '', fullName: '', email: '' });
-  const [importing, setImporting] = useState(false);
-  const [report, setReport] = useState(null);
   const [q, setQ] = useState('');
   const [sort, setSort] = useState({ key: 'student_code', dir: 1 });
   const [toDelete, setToDelete] = useState(null);
@@ -33,21 +30,6 @@ export default function StudentsTab({ cls, stats, requests, onChanged }) {
         return (x > y ? 1 : x < y ? -1 : 0) * sort.dir;
       });
   }, [list.data, stats, q, sort]);
-
-  async function onFile(e) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    setImporting(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const r = await api(`/account/classes/${cls.id}/students/import`, { method: 'POST', form: fd });
-      setReport(r);
-      changed();
-      if (r.imported) toast.success(`Đã import ${r.imported} sinh viên`);
-    } catch (err) { toast.error(err.message); } finally { setImporting(false); }
-  }
 
   async function addOne(e) {
     e.preventDefault();
@@ -81,16 +63,6 @@ export default function StudentsTab({ cls, stats, requests, onChanged }) {
 
   return (
     <div className="stack">
-      {report && report.errors.length > 0 && (
-        <div className="alert warn" style={{ flexDirection: 'column' }}>
-          <b>Đã import {report.imported} dòng, bỏ qua {report.errors.length} dòng lỗi:</b>
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {report.errors.slice(0, 8).map((e) => <li key={e.row}>Dòng {e.row}: {e.message}</li>)}
-            {report.errors.length > 8 && <li>… và {report.errors.length - 8} dòng khác</li>}
-          </ul>
-        </div>
-      )}
-
       <section className="card table-card">
         <div className="toolbar">
           <div className="input-icon grow" style={{ maxWidth: 320 }}>
@@ -98,14 +70,11 @@ export default function StudentsTab({ cls, stats, requests, onChanged }) {
             <input className="input" placeholder={`Tìm trong ${list.data.length} sinh viên`} value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <div className="grow" />
-          <button className="btn btn-ghost btn-sm" onClick={() => download('/account/students-template.xlsx', 'mau-danh-sach-sinh-vien.xlsx')} title="Tải file Excel mẫu (cột MSSV, Họ tên, Email)"><Download size={15} /><span className="hide-sm">File mẫu</span></button>
-          <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={onFile} />
-          <button className="btn btn-secondary" onClick={() => fileRef.current.click()} disabled={importing}>{importing ? <BtnSpinner /> : <Upload size={16} />}Import Excel</button>
           <button className="btn btn-primary" onClick={() => setAdding(true)}><UserPlus size={16} />Thêm</button>
         </div>
 
         {list.data.length === 0 ? (
-          <Empty icon={Users} title="Chưa có sinh viên">Import file Excel (3 cột: MSSV, Họ tên, Email) hoặc thêm từng sinh viên. Sinh viên đăng nhập bằng đúng email này sẽ thấy lớp.</Empty>
+          <Empty icon={Users} title="Chưa có sinh viên">Bấm "Thêm" để nhập từng sinh viên (MSSV, họ tên, email). Sinh viên đăng nhập bằng đúng email này sẽ thấy lớp.</Empty>
         ) : (
           <div className="table-wrap">
             <table>

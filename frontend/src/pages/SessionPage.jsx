@@ -225,7 +225,7 @@ export default function SessionPage() {
                   <Avatar name={s.fullName} />
                   <div className="grow">
                     <div className="bold truncate">{s.fullName}</div>
-                    <div className="xs muted">{s.studentCode}{s.checkedAt && ` · ${fmtTime(s.checkedAt)}`}{s.source === 'qr' && ' · quét QR'}{s.source === 'request' && ' · theo đơn'}{s.source === 'import' && ' · từ Excel'}</div>
+                    <div className="xs muted">{s.studentCode}{s.checkedAt && ` · ${fmtTime(s.checkedAt)}`}{s.source === 'qr' && ' · quét QR'}{s.source === 'request' && ' · theo đơn'}</div>
                   </div>
                   <StatusMenu status={staged.map[s.email] ?? s.status} dirty={staged.map[s.email] !== undefined} onChange={(k) => staged.set(s.email, s.status, k)} />
                 </div>

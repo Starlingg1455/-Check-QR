@@ -132,15 +132,10 @@ const cls = await call('/account/classes', {
   body: { code: classCode, name: courseName, room: ROOM || undefined, semester: SEMESTER || (batch ? `Đợt ${batch}` : ''), totalSessions: sessionCols.length, maxAbsentPercent: 20 },
 });
 
-// sinh viên: dùng chính chức năng import Excel của hệ thống (kiểm tra luôn đường nhập này với dữ liệu thật)
-const xl = new ExcelJS.Workbook();
-const sh = xl.addWorksheet('Sinh viên');
-sh.addRow(['MSSV', 'Họ tên', 'Email']);
-students.forEach((s) => sh.addRow([s.code, s.name, `${s.code}@sv.local`]));
-const form = new FormData();
-form.append('file', new Blob([await xl.xlsx.writeBuffer()]), 'sinh-vien.xlsx');
-const imp = await call(`/account/classes/${cls.id}/students/import`, { token: T, method: 'POST', form });
-if (imp.errors.length) { console.error('Import sinh viên có lỗi:', imp.errors); process.exit(1); }
+// sinh viên: thêm từng người qua API (hệ thống không còn chức năng nhập Excel)
+for (const st of students) {
+  await call(`/account/classes/${cls.id}/students`, { token: T, method: 'POST', body: { studentCode: st.code, fullName: st.name, email: `${st.code}@sv.local` } });
+}
 
 // buổi học: mỗi cột một buổi, đóng ngay sau khi tạo (hệ thống chỉ cho 1 buổi mở)
 const sessionIds = [];

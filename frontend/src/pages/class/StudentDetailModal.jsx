@@ -6,7 +6,7 @@ import { StatusMenu } from '../../components/extras.jsx';
 import { useStaged, useUnsavedWarning, SaveBar, ConfirmModal, ConfirmChangesModal } from '../../components/staged.jsx';
 import { RequestDetailModal, RequestChip } from './RequestDetailModal.jsx';
 
-const SOURCE = { request: 'Theo đơn xin vắng', import: 'Từ file Excel' };
+const SOURCE = { request: 'Theo đơn xin vắng' };
 
 /* Chi tiết một sinh viên: tỉ lệ, số buổi vắng so với giới hạn, từng buổi (giờ + cách điểm danh), đơn xin vắng. */
 export default function StudentDetailModal({ student, stats, cls, requests, onChanged, onClose }) {
@@ -120,7 +120,7 @@ export default function StudentDetailModal({ student, stats, cls, requests, onCh
                       <div className="grow">
                         <div className="bold">{r.title} <span className="small muted" style={{ fontWeight: 400 }}>· {fmtDate(r.date)}</span></div>
                         {r.record?.source === 'qr' && (r.status === 'present' || r.status === 'late') && <div className="small text-2 row" style={{ gap: 4, marginTop: 2 }}><Clock3 size={13} />Quét QR lúc {fmtTime(r.record.checkedAt)}</div>}
-                        {r.record && ['request', 'import'].includes(r.record.source) && <div className="small text-2" style={{ marginTop: 2 }}>{SOURCE[r.record.source]}</div>}
+                        {r.record && r.record.source === 'request' && <div className="small text-2" style={{ marginTop: 2 }}>{SOURCE[r.record.source]}</div>}
                         {r.request && <RequestChip request={r.request} onOpen={() => setOpenRequestId(r.request.id)} />}
                       </div>
                       <StatusMenu status={staged.map[r.sessionId] ?? r.status} dirty={staged.map[r.sessionId] !== undefined} onChange={(k) => staged.set(r.sessionId, r.status, k)} />

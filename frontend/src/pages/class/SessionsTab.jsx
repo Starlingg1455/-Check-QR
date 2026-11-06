@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Play, QrCode, ClipboardCheck, Trash2, CalendarDays, Radio, FileSpreadsheet } from 'lucide-react';
+import { Play, QrCode, ClipboardCheck, Trash2, CalendarDays, Radio } from 'lucide-react';
 import { api } from '../../api.js';
-import ExcelSyncModal from './ExcelSyncModal.jsx';
 import { Card, Badge, Empty, Loading, ErrorBox, Modal, Field, useToast, fmtDateTime, pct, Ring } from '../../components/ui.jsx';
 
 export default function SessionsTab({ cls, sessions, stats, onChanged }) {
@@ -12,7 +11,6 @@ export default function SessionsTab({ cls, sessions, stats, onChanged }) {
   const [title, setTitle] = useState('');
   const [busy, setBusy] = useState(false);
   const [toDelete, setToDelete] = useState(null);
-  const [excel, setExcel] = useState(false);
 
   if (sessions.loading) return <Loading />;
   if (sessions.error) return <ErrorBox message={sessions.error} onRetry={sessions.reload} />;
@@ -57,7 +55,7 @@ export default function SessionsTab({ cls, sessions, stats, onChanged }) {
         </div>
       )}
 
-      <Card pad={false} title={`Các buổi học (${list.length})`} actions={list.length > 0 && <button className="btn btn-secondary btn-sm" onClick={() => setExcel(true)} title="Sửa điểm danh nhiều buổi cùng lúc bằng file Excel"><FileSpreadsheet size={15} />Điểm danh bằng Excel</button>}>
+      <Card pad={false} title={`Các buổi học (${list.length})`}>
         {list.length === 0 ? (
           <Empty icon={CalendarDays} title="Chưa có buổi học nào">Bấm "Mở buổi điểm danh" để bắt đầu buổi đầu tiên.</Empty>
         ) : (
@@ -85,7 +83,6 @@ export default function SessionsTab({ cls, sessions, stats, onChanged }) {
         )}
       </Card>
 
-      {excel && <ExcelSyncModal cls={cls} onClose={() => setExcel(false)} onApplied={() => { setExcel(false); onChanged(); }} />}
       {opening && (
         <Modal title="Mở buổi điểm danh" onClose={() => setOpening(false)}>
           <form className="stack" onSubmit={openSession}>

@@ -8,7 +8,7 @@ export const openapi = {
   info: {
     title: 'Tài khoản & Lớp học',
     version: '1.0.0',
-    description: 'Đăng nhập Google/JWT, quản lý lớp học, import danh sách sinh viên từ Excel.',
+    description: 'Đăng nhập Google/JWT, quản lý lớp học và danh sách sinh viên.',
   },
   servers: [{ url: '/api/account', description: 'Qua API Gateway' }, { url: 'http://localhost:4001', description: 'Trực tiếp' }],
   components: {
@@ -59,13 +59,5 @@ export const openapi = {
     '/classes/{id}/students/{studentId}': {
       delete: { tags: ['Sinh viên'], summary: 'Xoá sinh viên khỏi lớp', security: bearer, parameters: [idParam, { name: 'studentId', in: 'path', required: true, schema: { type: 'integer' } }], responses: { 204: { description: 'Đã xoá' } } },
     },
-    '/classes/{id}/students/import': {
-      post: {
-        tags: ['Sinh viên'], summary: 'Import sinh viên từ file Excel (.xlsx; cột MSSV, Họ tên, Email)', security: bearer, parameters: [idParam],
-        requestBody: { required: true, content: { 'multipart/form-data': { schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } } } },
-        responses: { 200: { description: 'Kết quả import', ...json({ type: 'object', properties: { imported: { type: 'integer' }, errors: { type: 'array', items: { type: 'object' } } } }) } },
-      },
-    },
-    '/students-template.xlsx': { get: { tags: ['Sinh viên'], summary: 'Tải file Excel mẫu', responses: { 200: { description: 'File xlsx' } } } },
   },
 };

@@ -31,7 +31,7 @@ export default function StatsTab({ cls, requests, onChanged, stats, atRisk, pend
   const s = stats.data;
 
   if (s.studentCount === 0) {
-    return <div className="card"><Empty icon={Users} title="Lớp chưa có sinh viên" action={<button className="btn btn-primary" onClick={onGoStudents}>Thêm sinh viên</button>}>Import danh sách từ Excel để bắt đầu điểm danh.</Empty></div>;
+    return <div className="card"><Empty icon={Users} title="Lớp chưa có sinh viên" action={<button className="btn btn-primary" onClick={onGoStudents}>Thêm sinh viên</button>}>Thêm sinh viên vào lớp để bắt đầu điểm danh.</Empty></div>;
   }
   if (s.closedSessions === 0) {
     return <div className="card"><Empty icon={CalendarDays} title="Chưa có buổi nào hoàn tất">Mở một buổi điểm danh ở tab "Buổi học", đóng buổi xong thì biểu đồ sẽ xuất hiện ở đây.</Empty></div>;

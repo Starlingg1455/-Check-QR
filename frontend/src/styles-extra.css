@@ -85,20 +85,6 @@
 .chart-box.sm { height: calc(260px * var(--ui-zoom, 1)); }
 .comp-label { white-space: nowrap; }
 
-/* ===== Điểm danh bằng Excel ===== */
-.excel-step { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); }
-.excel-num { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; color: #fff; background: var(--accent); }
-.code-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin-top: 10px; }
-.code-item { display: flex; align-items: center; gap: 10px; }
-.code-key { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font: 700 15px ui-monospace, Consolas, monospace; border: 1px solid var(--border-strong); background: var(--surface); }
-.code-key.good { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good-ink); }
-.code-key.warning { background: color-mix(in srgb, var(--warning) 22%, transparent); color: var(--warning-ink); }
-.code-key.info { background: color-mix(in srgb, var(--info) 15%, transparent); color: var(--info-ink); }
-.code-key.critical { background: color-mix(in srgb, var(--critical) 14%, transparent); color: var(--critical-ink); }
-.error-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-.error-list li { display: flex; gap: 10px; align-items: baseline; font-size: 13.5px; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--surface) 70%, transparent); }
-.error-list code { flex: none; min-width: 38px; padding: 1px 7px; border-radius: 6px; font: 700 12px ui-monospace, Consolas, monospace; background: color-mix(in srgb, var(--critical) 16%, transparent); color: var(--critical-ink); text-align: center; }
-@media (max-width: 760px) { .code-grid { grid-template-columns: 1fr; } .excel-step { flex-wrap: wrap; } }
 
 /* ===== Bấm vào biểu đồ để xem chi tiết ===== */
 .donut-card { cursor: pointer; display: flex; flex-direction: column; }

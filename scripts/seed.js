@@ -1,7 +1,21 @@
-// Tạo dữ liệu demo qua API Gateway (chạy khi hệ thống đang chạy):  npm run seed
-// Giảng viên: gv@demo.vn   |   Sinh viên: sv01@demo.vn ... sv30@demo.vn   (đăng nhập thử nghiệm)
-import ExcelJS from 'exceljs';
+// Tạo lớp dữ liệu GIẢ LẬP qua API Gateway (chạy khi hệ thống đang chạy):  npm run seed
+//   Lớp:        TH4318_23CN1 - Phát triển phần mềm hướng dịch vụ (môn đã hoàn thành: 15/15 buổi)
+//   Giảng viên: gv@demo.vn   |   Sinh viên: sv01@demo.vn ... sv40@demo.vn   (đăng nhập thử nghiệm)
+// Toàn bộ họ tên, MSSV và điểm danh ở đây là dữ liệu giả, sinh ngẫu nhiên có cố định để lần nào chạy cũng giống nhau.
 import zlib from 'node:zlib';
+
+const API = process.env.API_URL || 'http://localhost:4000/api';
+
+async function call(path, { token, method = 'GET', body, form } = {}) {
+  const res = await fetch(API + path, {
+    method,
+    headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: form || (body ? JSON.stringify(body) : undefined),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(`${method} ${path} -> ${res.status}: ${data?.error}`);
+  return data;
+}
 
 // Tạo ảnh PNG mô phỏng "giấy khám bệnh" (không cần thư viện ngoài) để demo đính kèm minh chứng
 function crc32(buf) {
@@ -38,78 +52,64 @@ function makeDemoPng(w = 720, h = 960) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), pngChunk('IHDR', ihdr), pngChunk('IDAT', zlib.deflateSync(raw)), pngChunk('IEND', Buffer.alloc(0))]);
 }
 
-const API = process.env.API_URL || 'http://localhost:4000/api';
-
-async function call(path, { token, method = 'GET', body, form } = {}) {
-  const res = await fetch(API + path, {
-    method,
-    headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: form || (body ? JSON.stringify(body) : undefined),
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(`${method} ${path} -> ${res.status}: ${data?.error}`);
-  return data;
-}
-
-const hos = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Vũ', 'Đặng', 'Bùi'];
-const dem = ['Văn', 'Thị', 'Minh', 'Quốc', 'Ngọc', 'Hữu', 'Thanh', 'Gia'];
-const ten = ['An', 'Bình', 'Chi', 'Dũng', 'Giang', 'Hà', 'Khoa', 'Lan', 'Mai', 'Nam', 'Phúc', 'Quân', 'Sơn', 'Trang', 'Vy'];
+const hos = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Vũ', 'Đặng', 'Bùi', 'Đỗ', 'Ngô'];
+const dem = ['Văn', 'Thị', 'Minh', 'Quốc', 'Ngọc', 'Hữu', 'Thanh', 'Gia', 'Đức', 'Khánh'];
+const ten = ['An', 'Bình', 'Chi', 'Dũng', 'Giang', 'Hà', 'Khoa', 'Lan', 'Mai', 'Nam', 'Phúc', 'Quân', 'Sơn', 'Trang', 'Vy', 'Hải', 'Linh', 'Tuấn'];
 const pick = (arr, i) => arr[i % arr.length];
 
-const teacher = await call('/account/auth/dev-login', { method: 'POST', body: { email: 'gv@demo.vn', name: 'TS. Lê Minh Hoàng', role: 'teacher' } });
+// Giảng viên (không đặt tên để không ghi đè tên đã có của tài khoản)
+const teacher = await call('/account/auth/dev-login', { method: 'POST', body: { email: 'gv@demo.vn', role: 'teacher' } });
 const T = teacher.token;
 
 // 1) Tạo lớp
+const existing = await call('/account/classes', { token: T });
+if (existing.some((c) => c.code === 'TH4318_23CN1')) {
+  console.error('Lớp TH4318_23CN1 đã có. Xoá thư mục .data (hoặc xoá lớp) rồi chạy lại để tránh trùng.');
+  process.exit(1);
+}
 const cls = await call('/account/classes', {
   token: T, method: 'POST',
-  body: { code: 'INT3505', name: 'Phát triển phần mềm hướng dịch vụ', room: 'B3-201', semester: 'HK1 2025-2026', totalSessions: 15, maxAbsentPercent: 20 },
+  body: { code: 'TH4318_23CN1', name: 'Phát triển phần mềm hướng dịch vụ', room: 'A2-305', semester: 'HK1 2025-2026', totalSessions: 15, maxAbsentPercent: 20 },
 });
-console.log('Đã tạo lớp', cls.id);
+console.log('Đã tạo lớp', cls.id, cls.code);
 
-// 2) Import 30 sinh viên bằng file Excel (thử luôn chức năng import)
-const wb = new ExcelJS.Workbook();
-const ws = wb.addWorksheet('Sinh viên');
-ws.addRow(['MSSV', 'Họ tên', 'Email']);
+// 2) 40 sinh viên giả lập, thêm từng người
 const students = [];
-for (let i = 1; i <= 30; i++) {
+for (let i = 1; i <= 40; i++) {
   const s = {
-    code: `2100${String(1000 + i)}`,
+    code: `2455${String(1000 + i)}`,
     name: `${pick(hos, i * 3)} ${pick(dem, i * 5)} ${pick(ten, i * 7)}`,
     email: `sv${String(i).padStart(2, '0')}@demo.vn`,
   };
   students.push(s);
-  ws.addRow([s.code, s.name, s.email]);
+  await call(`/account/classes/${cls.id}/students`, { token: T, method: 'POST', body: { studentCode: s.code, fullName: s.name, email: s.email } });
 }
-const buffer = await wb.xlsx.writeBuffer();
-const form = new FormData();
-form.append('file', new Blob([buffer]), 'sinh-vien.xlsx');
-const imp = await call(`/account/classes/${cls.id}/students/import`, { token: T, method: 'POST', form });
-console.log('Import:', imp);
+console.log(`Đã thêm ${students.length} sinh viên`);
 
-// 3) Tạo 10 buổi học đã diễn ra (mỗi tuần 1 buổi), điểm danh theo "thói quen" từng sinh viên
-// absentRate: xác suất vắng của từng sinh viên (một số em vắng nhiều để có người sắp cấm thi)
-const absentRate = (i) => (i % 10 === 0 ? 0.55 : i % 7 === 0 ? 0.4 : i % 5 === 0 ? 0.25 : 0.06);
+// 3) 15 buổi đã diễn ra (mỗi tuần 1 buổi), điểm danh theo "thói quen" từng sinh viên
+// absentRate: xác suất vắng của từng sinh viên (một vài em vắng nhiều để có người sắp cấm thi)
+const absentRate = (i) => (i % 10 === 0 ? 0.3 : i % 7 === 0 ? 0.2 : i % 5 === 0 ? 0.12 : 0.03);
 let seed = 42;
-const rand = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296); // ngẫu nhiên cố định để lần nào cũng giống nhau
+const rand = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296); // ngẫu nhiên cố định
 
-const SESSIONS = 10;
-const start = Date.now() - SESSIONS * 7 * 86400000;
+const SESSIONS = 15;
+const changes = [];
 for (let n = 1; n <= SESSIONS; n++) {
-  const openedAt = new Date(start + (n - 1) * 7 * 86400000);
-  openedAt.setHours(7, 30, 0, 0);
+  const openedAt = new Date(2025, 8, 2 + (n - 1) * 7, 7, 30, 0); // thứ Ba hằng tuần từ 02/09/2025, 07:30
   const s = await call('/sessions/sessions', { token: T, method: 'POST', body: { classId: cls.id, title: `Buổi ${n}`, openedAt: openedAt.toISOString() } });
-  for (let i = 0; i < students.length; i++) {
+  students.forEach((st, i) => {
     const roll = rand();
     const rate = absentRate(i + 1);
     let status = 'present';
-    if (roll < rate) status = rand() < 0.2 ? 'excused' : 'absent';
-    else if (roll > 0.93) status = 'late';
-    if (status === 'absent') continue; // không ghi bản ghi => mặc định vắng
-    await call(`/attendance/sessions/${s.id}/students/${encodeURIComponent(students[i].email)}`, { token: T, method: 'PUT', body: { status } });
-  }
+    if (roll < rate) status = rand() < 0.25 ? 'excused' : 'absent';
+    else if (roll > 0.94) status = 'late';
+    changes.push({ sessionId: s.id, email: st.email, status });
+  });
   await call(`/sessions/sessions/${s.id}/close`, { token: T, method: 'POST' });
-  console.log(`Đã tạo buổi ${n}`);
 }
+// ghi tất cả điểm danh một lần
+await call(`/attendance/classes/${cls.id}/changes`, { token: T, method: 'POST', body: { changes } });
+console.log(`Đã tạo ${SESSIONS} buổi và ${changes.length} ô điểm danh`);
 
 // 4) Hai đơn xin vắng đang chờ duyệt (để thấy chức năng duyệt đơn).
 // Chỉ chọn sinh viên THỰC SỰ đang vắng ở buổi đó, cho dữ liệu demo hợp lý.
@@ -145,4 +145,4 @@ console.log(`Đơn xin vắng demo: ${first.fullName} (${lastSession.title}, có
 
 console.log('\nXong! Đăng nhập thử nghiệm bằng:');
 console.log('  Giảng viên: gv@demo.vn');
-console.log('  Sinh viên : sv01@demo.vn ... sv30@demo.vn');
+console.log('  Sinh viên : sv01@demo.vn ... sv40@demo.vn');

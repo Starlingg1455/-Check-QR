@@ -92,7 +92,7 @@ export default function TeacherHome() {
       {s.classes.length === 0 ? (
         <div className="card">
           <Empty icon={BookOpen} title="Chưa có lớp nào" action={<button className="btn btn-primary" onClick={() => setCreating(true)}><Plus size={18} />Tạo lớp đầu tiên</button>}>
-            Tạo lớp, import danh sách sinh viên từ Excel rồi mở buổi điểm danh đầu tiên.
+            Tạo lớp, thêm sinh viên rồi mở buổi điểm danh đầu tiên.
           </Empty>
         </div>
       ) : (

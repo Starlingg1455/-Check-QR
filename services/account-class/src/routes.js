@@ -1,22 +1,9 @@
 import { Router } from 'express';
-import multer from 'multer';
-import ExcelJS from 'exceljs';
 import { OAuth2Client } from 'google-auth-library';
 import { requireAuth, requireRole, signToken } from './auth.js';
 import { HttpError } from './http.js';
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 const teacherEmails = (process.env.TEACHER_EMAILS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-
-// Bỏ dấu tiếng Việt để nhận diện tên cột Excel
-const normalize = (s) =>
-  String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]/g, '');
-
-const COLUMN_ALIASES = {
-  code: ['mssv', 'masv', 'masinhvien', 'studentcode', 'studentid', 'ma'],
-  name: ['hoten', 'hovaten', 'ten', 'fullname', 'name', 'tensinhvien'],
-  email: ['email', 'mail', 'emailsinhvien'],
-};
 
 export function createRoutes(db) {
   const r = Router();
@@ -199,68 +186,6 @@ export function createRoutes(db) {
     const cls = await getOwnedClass(req.user, req.params.id);
     await db.query('DELETE FROM account.class_students WHERE id=$1 AND class_id=$2', [Number(req.params.studentId), cls.id]);
     res.status(204).end();
-  });
-
-  // Import danh sách sinh viên từ file Excel (cột: MSSV, Họ tên, Email)
-  r.post('/classes/:id/students/import', requireAuth, requireRole('teacher'), upload.single('file'), async (req, res) => {
-    const cls = await getOwnedClass(req.user, req.params.id);
-    if (!req.file) throw new HttpError(400, 'Chưa chọn file Excel');
-
-    const wb = new ExcelJS.Workbook();
-    try {
-      await wb.xlsx.load(req.file.buffer);
-    } catch {
-      throw new HttpError(400, 'File không phải Excel (.xlsx) hợp lệ');
-    }
-    const sheet = wb.worksheets[0];
-    if (!sheet) throw new HttpError(400, 'File Excel không có dữ liệu');
-
-    // Dò cột theo tên tiêu đề ở dòng 1; không nhận ra thì mặc định A=MSSV, B=Họ tên, C=Email
-    const cols = { code: 1, name: 2, email: 3 };
-    let hasHeader = false;
-    sheet.getRow(1).eachCell((cell, colNumber) => {
-      const key = normalize(cell.text);
-      for (const [field, aliases] of Object.entries(COLUMN_ALIASES)) {
-        if (aliases.includes(key)) { cols[field] = colNumber; hasHeader = true; }
-      }
-    });
-
-    let imported = 0;
-    const errors = [];
-    for (let i = hasHeader ? 2 : 1; i <= sheet.rowCount; i++) {
-      const row = sheet.getRow(i);
-      const code = row.getCell(cols.code).text.trim();
-      const name = row.getCell(cols.name).text.trim();
-      const email = row.getCell(cols.email).text.trim().toLowerCase();
-      if (!code && !name && !email) continue; // dòng trống
-      if (!code || !name) { errors.push({ row: i, message: 'Thiếu MSSV hoặc họ tên' }); continue; }
-      if (!/^\S+@\S+\.\S+$/.test(email)) { errors.push({ row: i, message: `Email không hợp lệ: "${email}"` }); continue; }
-      await db.query(
-        `INSERT INTO account.class_students (class_id, student_code, full_name, email) VALUES ($1,$2,$3,$4)
-         ON CONFLICT (class_id, student_code) DO UPDATE SET full_name=EXCLUDED.full_name, email=EXCLUDED.email`,
-        [cls.id, code, name, email],
-      );
-      imported++;
-    }
-    res.json({ imported, errors });
-  });
-
-  // File Excel mẫu để tải về
-  r.get('/students-template.xlsx', async (_req, res) => {
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('Sinh viên');
-    ws.columns = [
-      { header: 'MSSV', key: 'code', width: 16 },
-      { header: 'Họ tên', key: 'name', width: 30 },
-      { header: 'Email', key: 'email', width: 34 },
-    ];
-    ws.getRow(1).font = { bold: true };
-    ws.addRow({ code: '21001001', name: 'Nguyễn Văn An', email: 'an.nguyen@example.com' });
-    ws.addRow({ code: '21001002', name: 'Trần Thị Bình', email: 'binh.tran@example.com' });
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="mau-danh-sach-sinh-vien.xlsx"');
-    await wb.xlsx.write(res);
-    res.end();
   });
 
   return r;

@@ -60,18 +60,6 @@ export const openapi = {
         responses: { 200: { description: 'Đã lưu' }, 400: { description: 'Có thay đổi không hợp lệ, không lưu gì' } },
       },
     },
-    '/classes/{classId}/sheet.xlsx': {
-      get: { tags: ['Điểm danh bằng Excel'], summary: 'Tải file điểm danh của lớp (ma trận sinh viên x buổi)', description: 'Mỗi ô là một mã: x hoặc trống = có mặt, m = muộn, p = có phép, v = vắng. Chứa mã buổi để đối chiếu khi tải lên.', security: bearer, parameters: [intPath('classId')], responses: { 200: { description: 'File xlsx' } } },
-    },
-    '/classes/{classId}/sheet/import': {
-      post: {
-        tags: ['Điểm danh bằng Excel'], summary: 'Tải file điểm danh đã sửa lên', security: bearer,
-        description: 'File phải đồng bộ 100% với hệ thống (cùng lớp, cùng danh sách sinh viên, cùng các buổi, mã hợp lệ). Có bất kỳ lỗi nào thì từ chối cả file (422) và liệt kê các ô lỗi. Dùng dryRun=1 để xem trước thay đổi mà chưa ghi.',
-        parameters: [intPath('classId'), { name: 'dryRun', in: 'query', schema: { type: 'string', enum: ['1'] } }],
-        requestBody: { required: true, content: { 'multipart/form-data': { schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } } } },
-        responses: { 200: { description: 'Hợp lệ (đã áp dụng, hoặc bản xem trước nếu dryRun)' }, 422: { description: 'File chưa đồng bộ, kèm danh sách lỗi' } },
-      },
-    },
     '/requests': {
       get: { tags: ['Đơn xin vắng'], summary: 'Danh sách đơn (giảng viên: theo classId; sinh viên: đơn của mình)', security: bearer, parameters: [{ name: 'classId', in: 'query', schema: { type: 'integer' } }], responses: { 200: { description: 'OK', ...json({ type: 'array', items: { $ref: '#/components/schemas/Request' } }) } } },
       post: {

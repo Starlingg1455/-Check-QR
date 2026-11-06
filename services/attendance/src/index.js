@@ -5,7 +5,7 @@ import swaggerUi from 'swagger-ui-express';
 import { createDb } from './db.js';
 import { errorHandler } from './http.js';
 import { createRoutes } from './routes.js';
-import { createSheetRoutes } from './sheet.js';
+import { createChangesRoutes } from './changes.js';
 import { openapi } from './openapi.js';
 
 const PORT = process.env.PORT || process.env.ATTENDANCE_PORT || 4003;
@@ -72,7 +72,7 @@ app.use(express.json());
 app.get('/health', (_req, res) => res.json({ service: 'attendance', ok: true }));
 app.get('/openapi.json', (_req, res) => res.json(openapi));
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapi));
-app.use(createSheetRoutes(db));
+app.use(createChangesRoutes(db));
 app.use(createRoutes(db));
 app.use(errorHandler);
 

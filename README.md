@@ -21,7 +21,7 @@ account-class  session-qr   attendance     statistics
 
 | Module | Thư mục | Trách nhiệm |
 |---|---|---|
-| 1. Tài khoản & Lớp học | `services/account-class` | Đăng nhập Google, JWT, tạo lớp, import sinh viên từ Excel |
+| 1. Tài khoản & Lớp học | `services/account-class` | Đăng nhập Google, JWT, tạo lớp, quản lý sinh viên |
 | 2. Buổi học & Mã QR | `services/session-qr` | Mở/đóng buổi, mã QR ký HMAC đổi mỗi 30 giây |
 | 3. Điểm danh & Thông báo | `services/attendance` | Quét QR, sửa tay, đơn xin vắng, email cảnh báo |
 | 4. Thống kê | `services/statistics` | Dashboard, danh sách sắp cấm thi, xuất Excel |
@@ -47,28 +47,13 @@ npm install
 cp .env.example .env      # Windows PowerShell: Copy-Item .env.example .env
 npm run backend           # gateway + 4 service (terminal 1)
 npm run dev -w frontend   # giao diện (terminal 2)  ->  http://localhost:5173
-npm run seed              # (tuỳ chọn) tạo lớp mẫu + 10 buổi dữ liệu để xem biểu đồ
+npm run seed              # (tuỳ chọn) tạo lớp GIẢ LẬP TH4318_23CN1 (40 sinh viên, 15 buổi) để xem biểu đồ
 ```
 
 - Chưa đặt `DATABASE_URL` thì mỗi service tự dùng PGlite (Postgres chạy trong Node), lưu ở `.data/`. Xoá thư mục này là về dữ liệu trống.
-- Đăng nhập thử nghiệm (khi `ALLOW_DEV_LOGIN=true`): `gv@demo.vn` (giảng viên), `sv01@demo.vn` … `sv30@demo.vn` (sinh viên).
+- Đăng nhập thử nghiệm (khi `ALLOW_DEV_LOGIN=true`): `gv@demo.vn` (giảng viên), `sv01@demo.vn` … `sv40@demo.vn` (sinh viên của lớp giả lập). Sinh viên lớp của trường đăng nhập bằng `<MSSV>@sv.local`.
 - Swagger tổng hợp: <http://localhost:4000/docs>. Mỗi service cũng có `/docs` riêng.
-- Kiểm tra tự động (sau khi seed): `node scripts/smoke-test.js` (luồng chính), `node scripts/test-attachments.mjs` (ảnh minh chứng), `node scripts/test-sheet.mjs` (điểm danh Excel), `node scripts/test-late.mjs` (đến muộn sau khi đóng QR, giảng viên sửa tay), `node scripts/test-changes.mjs` (lưu nhiều thay đổi sửa tay cùng lúc). Các bài test này sẽ thay đổi dữ liệu demo, nên xoá `.data` và seed lại sau khi chạy.
-
-### Điểm danh bằng file Excel (đồng bộ)
-Tab **Buổi học** → **Điểm danh bằng Excel**: tải file ma trận (sinh viên x buổi), sửa mã trong ô rồi tải lên.
-
-| Mã | Ý nghĩa |
-|---|---|
-| `x` hoặc để trống | Có mặt |
-| `m` | Đi muộn |
-| `p` | Vắng có phép |
-| `v` | Vắng không phép |
-
-File phải **đồng bộ 100%** với hệ thống, nếu không sẽ bị từ chối **cả file** (không nhận một phần) và hiện danh sách ô lỗi:
-mã không hợp lệ, MSSV lạ/thiếu/lặp, thiếu hoặc thừa cột buổi (lớp có buổi mới), file của lớp khác, file Excel không phải file mẫu.
-File hợp lệ sẽ cho **xem trước** các ô thay đổi, bấm áp dụng mới ghi (một câu lệnh SQL duy nhất nên không bao giờ ghi nửa chừng).
-Nút **Xuất Excel** của thống kê dùng cùng quy ước mã.
+- Kiểm tra tự động (sau khi seed): `node scripts/smoke-test.js` (luồng chính), `node scripts/test-attachments.mjs` (ảnh minh chứng), `node scripts/test-late.mjs` (đến muộn sau khi đóng QR, giảng viên sửa tay), `node scripts/test-changes.mjs` (lưu nhiều thay đổi sửa tay cùng lúc). Các bài test này sẽ thay đổi dữ liệu demo, nên xoá `.data` và seed lại sau khi chạy.
 
 ### Nhập bảng điểm danh mẫu của trường
 ```bash
@@ -108,6 +93,7 @@ Lưu ý:
 frontend/            React (Vite), Chart.js, giao diện sáng/tối, dùng được trên điện thoại
 gateway/             API Gateway + Swagger tổng hợp
 services/            4 service độc lập (mỗi service có package.json, openapi.js riêng)
-scripts/seed.js      tạo dữ liệu mẫu qua API
+scripts/seed.js      tạo lớp dữ liệu giả lập qua API
+scripts/import-mau-truong.mjs  nhập bảng điểm danh mẫu của trường (xlsx)
 scripts/smoke-test.js  kiểm tra nhanh luồng chính
 ```
