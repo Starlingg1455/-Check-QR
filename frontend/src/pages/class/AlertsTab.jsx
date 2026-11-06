@@ -7,7 +7,7 @@ import { Card, Empty, Loading, ErrorBox, Badge, LevelBadge, LEVEL, useLoad, useT
 const MAIL = { sent: ['good', 'Đã gửi'], logged: ['info', 'Ghi log'], failed: ['critical', 'Gửi lỗi'] };
 
 /* Tab Cảnh báo: ai sắp bị cấm thi, gửi email nhắc, lịch sử email */
-export default function AlertsTab({ cls, stats, requests }) {
+export default function AlertsTab({ cls, stats, requests, onChanged }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [detail, setDetail] = useState(null); // sinh viên đang xem chi tiết
@@ -57,7 +57,7 @@ export default function AlertsTab({ cls, stats, requests }) {
         )}
       </Card>
 
-      {detail && <StudentDetailModal student={{ student_code: detail.studentCode, full_name: detail.fullName, email: detail.email }} stats={s} cls={cls} requests={requests} onClose={() => setDetail(null)} />}
+      {detail && <StudentDetailModal student={{ student_code: detail.studentCode, full_name: detail.fullName, email: detail.email }} stats={s} cls={cls} requests={requests} onChanged={onChanged} onClose={() => setDetail(null)} />}
 
       <Card title="Lịch sử email đã gửi" pad={false}>
         {history.loading ? <Loading /> : history.error ? <ErrorBox message={history.error} /> : history.data.length === 0 ? (

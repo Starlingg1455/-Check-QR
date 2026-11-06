@@ -133,7 +133,7 @@ export function createRoutes(db) {
     });
     const summary = { total: roster.length, present: 0, late: 0, excused: 0, absent: 0 };
     roster.forEach((x) => { summary[x.status]++; });
-    res.json({ session, summary, roster });
+    res.json({ session, summary, roster, lateMinutes: LATE_MINUTES });
   });
 
   // Giảng viên sửa tay trạng thái: có mặt / đi trễ / có phép / vắng

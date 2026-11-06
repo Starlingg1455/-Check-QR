@@ -140,3 +140,9 @@ button.drill-row:last-child { border-bottom: 0; }
 button.drill-row:hover { background: var(--surface-2); }
 button.drill-row:hover .row-chevron { transform: translateX(2px); color: var(--accent); }
 button.drill-row:focus-visible { outline-offset: -2px; }
+
+/* Dòng tóm tắt một đơn xin vắng (dùng trong chi tiết sinh viên) */
+.request-chip { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 6px 6px 6px 10px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface-2); cursor: pointer; transition: border-color 0.12s, background 0.12s; }
+.request-chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+.request-chip-text { flex: 1; min-width: 0; font-size: 13.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 760px) { .request-chip { flex-wrap: wrap; } .request-chip-text { flex-basis: 100%; order: 3; white-space: normal; } }

@@ -1,20 +1,24 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Mail, Hash, Clock3 } from 'lucide-react';
 import { api } from '../../api.js';
-import { Modal, Avatar, LevelBadge, StatusBadge, Badge, Loading, STATUS, useLoad, fmtDate, fmtTime, pct } from '../../components/ui.jsx';
-import { RequestThumbs } from '../../components/extras.jsx';
+import { Modal, Avatar, LevelBadge, Loading, STATUS, useLoad, useToast, fmtDate, fmtTime, pct } from '../../components/ui.jsx';
+import { StatusMenu } from '../../components/extras.jsx';
+import { RequestDetailModal, RequestChip } from './RequestDetailModal.jsx';
 
 const SOURCE = { qr: 'Quét QR', manual: 'Giảng viên sửa tay', request: 'Theo đơn xin vắng', import: 'Từ file Excel' };
-const REQ = { pending: ['warning', 'Đơn chờ duyệt'], approved: ['good', 'Đơn đã duyệt'], rejected: ['critical', 'Đơn bị từ chối'] };
 
 /* Chi tiết một sinh viên: tỉ lệ, số buổi vắng so với giới hạn, từng buổi (giờ + cách điểm danh), đơn xin vắng. */
-export default function StudentDetailModal({ student, stats, cls, requests, onClose }) {
+export default function StudentDetailModal({ student, stats, cls, requests, onChanged, onClose }) {
+  const toast = useToast();
   const email = student.email.toLowerCase();
   const code = String(student.student_code);
   const summary = stats?.perStudent.find((s) => String(s.studentCode) === code);
 
   // Bản ghi điểm danh của lớp (có giờ quét, cách điểm danh, ghi chú); lọc ra của sinh viên này
   const records = useLoad(() => api(`/attendance/classes/${cls.id}/records`), [cls.id]);
+  // Đơn xin vắng đang mở để duyệt (luôn lấy bản mới nhất từ danh sách đơn của lớp)
+  const [openRequestId, setOpenRequestId] = useState(null);
+  const openRequest = openRequestId && (requests || []).find((r) => r.id === openRequestId);
 
   // Trạng thái từng buổi (chỉ các buổi đã đóng), suy ra từ danh sách theo buổi của thống kê
   const rows = useMemo(() => {
@@ -26,6 +30,16 @@ export default function StudentDetailModal({ student, stats, cls, requests, onCl
       return { ...s, status, record: byRecord.get(s.sessionId) || null, request: myRequests.get(s.sessionId) || null };
     });
   }, [stats, records.data, requests, email, code]);
+
+  // Giảng viên sửa tay trạng thái một buổi ngay tại đây (vd bạn đi muộn sau khi đã đóng QR)
+  async function setStatus(row, status) {
+    try {
+      await api(`/attendance/sessions/${row.sessionId}/students/${encodeURIComponent(student.email)}`, { method: 'PUT', body: { status } });
+      toast.success(`Đã sửa buổi ${row.sessionNo}: ${STATUS[status].label}`);
+      records.refresh();
+      onChanged?.();
+    } catch (e) { toast.error(e.message); }
+  }
 
   const limit = stats?.absentLimit ?? 0;
   const absent = summary?.absent ?? 0;
@@ -86,7 +100,7 @@ export default function StudentDetailModal({ student, stats, cls, requests, onCl
 
             {/* Từng buổi */}
             <div>
-              <div className="small bold text-2" style={{ marginBottom: 8 }}>Từng buổi học</div>
+              <div className="small bold text-2" style={{ marginBottom: 8 }}>Từng buổi học <span className="muted" style={{ fontWeight: 400 }}>· bấm vào trạng thái để sửa tay</span></div>
               {records.loading ? <Loading /> : (
                 <div className="drill-list" style={{ maxHeight: 340 }}>
                   {[...rows].reverse().map((r) => (
@@ -100,18 +114,9 @@ export default function StudentDetailModal({ student, stats, cls, requests, onCl
                           {!r.record && r.status === 'absent' && <span className="muted">Không có bản ghi điểm danh</span>}
                         </div>
                         {r.record?.note && r.record.source !== 'request' && <div className="small text-2" style={{ marginTop: 2 }}>Ghi chú: {r.record.note}</div>}
-                        {r.request && (
-                          <div className="detail-request">
-                            <div className="row wrap" style={{ gap: 8 }}>
-                              <Badge tone={REQ[r.request.status][0]}>{REQ[r.request.status][1]}</Badge>
-                              <span className="small text-2">{r.request.reason}</span>
-                            </div>
-                            {r.request.teacherNote && <div className="small text-2" style={{ marginTop: 4 }}><b>Giảng viên:</b> {r.request.teacherNote}</div>}
-                            <RequestThumbs request={r.request} />
-                          </div>
-                        )}
+                        {r.request && <RequestChip request={r.request} onOpen={() => setOpenRequestId(r.request.id)} />}
                       </div>
-                      <StatusBadge status={r.status} />
+                      <StatusMenu status={r.status} onChange={(k) => setStatus(r, k)} />
                     </div>
                   ))}
                 </div>
@@ -120,6 +125,13 @@ export default function StudentDetailModal({ student, stats, cls, requests, onCl
           </>
         )}
       </div>
+      {openRequest && (
+        <RequestDetailModal
+          request={openRequest}
+          onClose={() => setOpenRequestId(null)}
+          onReviewed={() => { setOpenRequestId(null); records.refresh(); onChanged?.(); }}
+        />
+      )}
     </Modal>
   );
 }

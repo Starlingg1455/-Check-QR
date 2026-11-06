@@ -6,7 +6,7 @@ import { AttendanceDetailModal, AbsenceDetailModal, SessionDetailModal } from '.
 import StudentDetailModal from './StudentDetailModal.jsx';
 
 /* Tab Tổng quan: chỉ số chính + biểu đồ. Danh sách chi tiết nằm ở tab Sinh viên và Cảnh báo. */
-export default function StatsTab({ cls, requests, stats, atRisk, pending, onGoAlerts, onGoStudents, onGoRequests }) {
+export default function StatsTab({ cls, requests, onChanged, stats, atRisk, pending, onGoAlerts, onGoStudents, onGoRequests }) {
   const [detail, setDetail] = useState(null); // null | { type: 'attendance' } | { type: 'absence', count } | { type: 'session', index }
   const [studentCode, setStudentCode] = useState(null); // sinh viên đang xem chi tiết (mở chồng lên danh sách)
   if (stats.loading) return <Loading />;
@@ -76,7 +76,7 @@ export default function StatsTab({ cls, requests, stats, atRisk, pending, onGoAl
       {detail?.type === 'absence' && <AbsenceDetailModal count={detail.count} stats={s} onOpenStudent={setStudentCode} onClose={() => setDetail(null)} />}
       {studentCode && (() => {
         const p = s.perStudent.find((x) => String(x.studentCode) === String(studentCode));
-        return p ? <StudentDetailModal student={{ student_code: p.studentCode, full_name: p.fullName, email: p.email }} stats={s} cls={cls} requests={requests} onClose={() => setStudentCode(null)} /> : null;
+        return p ? <StudentDetailModal student={{ student_code: p.studentCode, full_name: p.fullName, email: p.email }} stats={s} cls={cls} requests={requests} onChanged={onChanged} onClose={() => setStudentCode(null)} /> : null;
       })()}
     </div>
   );

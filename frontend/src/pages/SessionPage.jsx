@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
-import { ArrowLeft, Maximize2, Copy, Lock, Search, Radio, Smartphone, Check } from 'lucide-react';
+import { ArrowLeft, Maximize2, Copy, Lock, Search, Radio, Smartphone, Check, Pencil } from 'lucide-react';
 import { api } from '../api.js';
 import { StatusMenu } from '../components/extras.jsx';
 import { Card, PageHead, Loading, ErrorBox, Modal, Badge, Avatar, useLoad, useToast, fmtDateTime, fmtTime, STATUS } from '../components/ui.jsx';
@@ -23,7 +23,7 @@ function Countdown({ remaining, ttl }) {
   );
 }
 
-function QrPanel({ sessionId, session }) {
+function QrPanel({ sessionId, session, lateMinutes }) {
   const toast = useToast();
   const canvasRef = useRef(null);
   const panelRef = useRef(null);
@@ -95,7 +95,7 @@ function QrPanel({ sessionId, session }) {
 
       <div className="alert" style={{ alignSelf: 'stretch', textAlign: 'left', alignItems: 'center' }}>
         <Smartphone size={18} style={{ flex: 'none' }} />
-        <span className="small">Sinh viên mở camera điện thoại quét mã, đăng nhập bằng email của lớp là điểm danh xong.</span>
+        <span className="small">Sinh viên mở camera điện thoại quét mã, đăng nhập bằng email của lớp là điểm danh xong.{lateMinutes ? ` Quét sau ${lateMinutes} phút kể từ lúc mở buổi sẽ tự tính là đi muộn.` : ''}</span>
       </div>
 
       <div className="row wrap" style={{ justifyContent: 'center' }}>
@@ -164,9 +164,15 @@ export default function SessionPage() {
       />
 
       <div className={isOpen ? 'qr-stage' : ''}>
-        {isOpen && <QrPanel sessionId={sid} session={session} />}
+        {isOpen && <QrPanel sessionId={sid} session={session} lateMinutes={roster.data.lateMinutes} />}
 
         <div className="stack">
+          {!isOpen && (
+            <div className="alert" style={{ alignItems: 'flex-start' }}>
+              <Pencil size={18} style={{ flex: 'none', marginTop: 1 }} />
+              <span className="small">Buổi đã đóng nên sinh viên không quét QR được nữa. Bạn đến muộn hoặc cần chỉnh lại thì <b>bấm vào trạng thái</b> của sinh viên ở danh sách bên dưới để sửa tay (ví dụ chọn "Đi muộn").</span>
+            </div>
+          )}
           <Card>
             <div className="row" style={{ alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <div>
@@ -190,7 +196,7 @@ export default function SessionPage() {
 
           <section className="card table-card">
             <div className="toolbar">
-              <h2 className="grow">Danh sách điểm danh</h2>
+              <div className="grow"><h2>Danh sách điểm danh</h2><div className="xs muted">Bấm vào trạng thái của từng sinh viên để sửa tay</div></div>
               <div className="input-icon" style={{ width: 200 }}><Search size={16} /><input className="input" placeholder="Tìm sinh viên" value={q} onChange={(e) => setQ(e.target.value)} /></div>
             </div>
             <div className="roster list">

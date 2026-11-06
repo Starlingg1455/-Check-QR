@@ -53,7 +53,7 @@ npm run seed              # (tuỳ chọn) tạo lớp mẫu + 10 buổi dữ li
 - Chưa đặt `DATABASE_URL` thì mỗi service tự dùng PGlite (Postgres chạy trong Node), lưu ở `.data/`. Xoá thư mục này là về dữ liệu trống.
 - Đăng nhập thử nghiệm (khi `ALLOW_DEV_LOGIN=true`): `gv@demo.vn` (giảng viên), `sv01@demo.vn` … `sv30@demo.vn` (sinh viên).
 - Swagger tổng hợp: <http://localhost:4000/docs>. Mỗi service cũng có `/docs` riêng.
-- Kiểm tra tự động (sau khi seed): `node scripts/smoke-test.js` (luồng chính), `node scripts/test-attachments.mjs` (ảnh minh chứng), `node scripts/test-sheet.mjs` (điểm danh Excel). Các bài test này sẽ thay đổi dữ liệu demo, nên xoá `.data` và seed lại sau khi chạy.
+- Kiểm tra tự động (sau khi seed): `node scripts/smoke-test.js` (luồng chính), `node scripts/test-attachments.mjs` (ảnh minh chứng), `node scripts/test-sheet.mjs` (điểm danh Excel), `node scripts/test-late.mjs` (đến muộn sau khi đóng QR, giảng viên sửa tay). Các bài test này sẽ thay đổi dữ liệu demo, nên xoá `.data` và seed lại sau khi chạy.
 
 ### Điểm danh bằng file Excel (đồng bộ)
 Tab **Buổi học** → **Điểm danh bằng Excel**: tải file ma trận (sinh viên x buổi), sửa mã trong ô rồi tải lên.

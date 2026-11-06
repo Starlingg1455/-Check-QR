@@ -136,7 +136,7 @@ export default function StudentsTab({ cls, stats, requests, onChanged }) {
         )}
       </section>
 
-      {detail && <StudentDetailModal student={detail} stats={stats} cls={cls} requests={requests} onClose={() => setDetail(null)} />}
+      {detail && <StudentDetailModal student={detail} stats={stats} cls={cls} requests={requests} onChanged={onChanged} onClose={() => setDetail(null)} />}
       {adding && (
         <Modal title="Thêm sinh viên" onClose={() => setAdding(false)}>
           <form className="stack" onSubmit={addOne}>

@@ -84,10 +84,10 @@ export default function ClassPage() {
         ))}
       </div>
 
-      {tab === 'overview' && <StatsTab cls={c} requests={requests.data} stats={stats} atRisk={atRisk} pending={pending} onGoAlerts={() => go('alerts')} onGoStudents={() => go('students')} onGoRequests={() => go('requests')} />}
+      {tab === 'overview' && <StatsTab cls={c} requests={requests.data} onChanged={reloadAll} stats={stats} atRisk={atRisk} pending={pending} onGoAlerts={() => go('alerts')} onGoStudents={() => go('students')} onGoRequests={() => go('requests')} />}
       {tab === 'sessions' && <SessionsTab cls={c} sessions={sessions} stats={stats.data} onChanged={reloadAll} />}
       {tab === 'students' && <StudentsTab cls={c} stats={stats.data} requests={requests.data} onChanged={reloadAll} />}
-      {tab === 'alerts' && <AlertsTab cls={c} stats={stats} requests={requests.data} />}
+      {tab === 'alerts' && <AlertsTab cls={c} stats={stats} requests={requests.data} onChanged={reloadAll} />}
       {tab === 'requests' && <RequestsTab requests={requests} onChanged={reloadAll} />}
 
       {editing && (
