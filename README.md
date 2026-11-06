@@ -6,14 +6,15 @@ Giảng viên chiếu mã QR, sinh viên quét bằng điện thoại để đi�
 ## Cấu trúc thư mục
 
 ```
-frontend/   Giao diện React (Vite) + biểu đồ Chart.js
-gateway/    Cổng API: cửa ngõ duy nhất của frontend, chuyển tiếp tới 4 dịch vụ, Swagger tổng hợp
-services/   4 dịch vụ độc lập (mỗi dịch vụ có package.json riêng, triển khai riêng được)
-scripts/    Tạo dữ liệu giả, nhập lớp của trường, kiểm thử
-du-lieu-truong/   (chỉ ở máy bạn, không đưa lên git) bảng điểm danh thật của trường
+frontend/                 Giao diện React (Vite) + biểu đồ Chart.js
+backend/
+  gateway/                Cổng API: cửa ngõ duy nhất của frontend, chuyển tiếp tới 4 dịch vụ, Swagger tổng hợp
+  services/               4 dịch vụ độc lập (mỗi dịch vụ có package.json riêng, triển khai riêng được)
+scripts/                  Tạo dữ liệu giả, nhập lớp của trường, kiểm thử
+du-lieu-truong/           (chỉ ở máy bạn, không đưa lên git) bảng điểm danh thật của trường
 ```
 
-Bên trong mỗi dịch vụ (`services/<tên>/src/`) luôn có đúng 4 tệp, mỗi tệp một nhiệm vụ rõ ràng:
+Bên trong mỗi dịch vụ (`backend/services/<tên>/src/`) luôn có đúng 4 tệp, mỗi tệp một nhiệm vụ rõ ràng:
 
 | Tệp | Nhiệm vụ |
 |---|---|
@@ -30,10 +31,10 @@ Bên trong `frontend/src/`: `main.jsx`, `App.jsx` (các đường dẫn trang), 
 
 | Dịch vụ | Thư mục | Cổng | Schema DB | Trách nhiệm |
 |---|---|---|---|---|
-| 1. Tài khoản & Lớp học | `services/tai-khoan-lop-hoc` | 4001 | `account` | Đăng nhập Google, JWT, tạo lớp, quản lý sinh viên |
-| 2. Buổi học & Mã QR | `services/buoi-hoc-qr` | 4002 | `session_qr` | Mở/đóng buổi, mã QR ký HMAC đổi mỗi 30 giây |
-| 3. Điểm danh & Thông báo | `services/diem-danh` | 4003 | `attendance` | Quét QR, sửa tay, đơn xin vắng, email cảnh báo |
-| 4. Thống kê | `services/thong-ke` | 4004 | (không có) | Dashboard, danh sách sắp cấm thi, xuất Excel |
+| 1. Tài khoản & Lớp học | `backend/services/tai-khoan-lop-hoc` | 4001 | `account` | Đăng nhập Google, JWT, tạo lớp, quản lý sinh viên |
+| 2. Buổi học & Mã QR | `backend/services/buoi-hoc-qr` | 4002 | `session_qr` | Mở/đóng buổi, mã QR ký HMAC đổi mỗi 30 giây |
+| 3. Điểm danh & Thông báo | `backend/services/diem-danh` | 4003 | `attendance` | Quét QR, sửa tay, đơn xin vắng, email cảnh báo |
+| 4. Thống kê | `backend/services/thong-ke` | 4004 | (không có) | Dashboard, danh sách sắp cấm thi, xuất Excel |
 
 Các dịch vụ chỉ gọi nhau qua REST (chuyển tiếp JWT của người dùng), **không truy vấn chéo database**.
 Tên đường dẫn qua cổng API vẫn giữ nguyên: `/api/account`, `/api/sessions`, `/api/attendance`, `/api/statistics`.
@@ -94,7 +95,7 @@ Camera chỉ chạy trên HTTPS hoặc localhost. Dùng `ngrok http 5173` (hoặ
 | Thành phần | Nơi deploy | Lệnh build / start | Biến môi trường chính |
 |---|---|---|---|
 | Database | Supabase | Tạo project, lấy connection string (Session pooler) | |
-| Cổng API + 4 dịch vụ | Render (Web Service, free) | Thư mục gốc là gốc repo. Build: `npm install`. Start: `npm start -w services/tai-khoan-lop-hoc` (tương tự cho từng dịch vụ; cổng API: `npm start -w gateway`). Có sẵn `render.yaml` để tạo cả 5 một lượt | `DATABASE_URL`, `JWT_SECRET` (giống nhau ở cả 4), `QR_SECRET`, `ACCOUNT_URL`/`SESSION_URL`/`ATTENDANCE_URL`/`STATISTICS_URL` trỏ tới địa chỉ Render của từng dịch vụ |
+| Cổng API + 4 dịch vụ | Render (Web Service, free) | Thư mục gốc là gốc repo. Build: `npm install`. Start: `npm start -w backend/services/tai-khoan-lop-hoc` (tương tự cho từng dịch vụ; cổng API: `npm start -w backend/gateway`). Có sẵn `render.yaml` để tạo cả 5 một lượt | `DATABASE_URL`, `JWT_SECRET` (giống nhau ở cả 4), `QR_SECRET`, `ACCOUNT_URL`/`SESSION_URL`/`ATTENDANCE_URL`/`STATISTICS_URL` trỏ tới địa chỉ Render của từng dịch vụ |
 | Frontend | Vercel hoặc Netlify | Root: `frontend`. Build: `npm run build`. Output: `dist` | `VITE_API_URL` là địa chỉ cổng API (không kèm `/api`) |
 
 Lưu ý:

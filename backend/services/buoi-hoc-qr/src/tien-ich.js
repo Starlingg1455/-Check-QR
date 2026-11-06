@@ -65,7 +65,7 @@ export async function taoCoSoDuLieu(schema) {
   } else {
     const { PGlite } = await import('@electric-sql/pglite');
     // Thư mục dữ liệu cục bộ nằm ở gốc dự án: .data/<schema>
-    const dir = path.resolve(process.env.DATA_DIR || '../../.data', schema);
+    const dir = path.resolve(process.env.DATA_DIR || '../../../.data', schema);
     fs.mkdirSync(dir, { recursive: true });
     const lite = new PGlite(dir);
     runQuery = (text, params) => lite.query(text, params);
