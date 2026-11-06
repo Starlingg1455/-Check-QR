@@ -6,8 +6,9 @@ const ZoomContext = createContext(null);
 export const useZoom = () => useContext(ZoomContext);
 
 const BASE_WIDTH = 1440; // từ bề rộng này trở lên mới bắt đầu phóng to
-const MIN_FACTOR = 0.9;
-const MAX_FACTOR = 1.5;
+const MIN_FACTOR = 0.8;
+const MAX_FACTOR = 1.6;
+const STEP = 0.05; // mỗi lần bấm A- / A+ đổi 5%
 
 const readFactor = () => {
   try { const v = Number(localStorage.getItem('zoom')); return v >= MIN_FACTOR && v <= MAX_FACTOR ? v : 1; } catch { return 1; }
@@ -35,13 +36,13 @@ export function ZoomProvider({ children }) {
   }, [total]);
 
   const change = (delta) => {
-    const next = Math.round(Math.min(MAX_FACTOR, Math.max(MIN_FACTOR, factor + delta)) * 10) / 10;
+    const next = Math.round(Math.min(MAX_FACTOR, Math.max(MIN_FACTOR, factor + delta)) * 20) / 20; // làm tròn theo bước 5%
     setFactor(next);
     try { localStorage.setItem('zoom', String(next)); } catch { /* bỏ qua */ }
   };
 
   return (
-    <ZoomContext.Provider value={{ factor, total, enabled: width >= 1000, bigger: () => change(0.1), smaller: () => change(-0.1), reset: () => change(1 - factor) }}>
+    <ZoomContext.Provider value={{ factor, total, enabled: width >= 1000, bigger: () => change(STEP), smaller: () => change(-STEP), reset: () => change(1 - factor) }}>
       {children}
     </ZoomContext.Provider>
   );
