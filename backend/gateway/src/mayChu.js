@@ -9,14 +9,32 @@ const CONG_MAY_CHU = process.env.PORT || process.env.GATEWAY_PORT || 4000;
 
 // Tiền tố đường dẫn -> địa chỉ service
 const routes = [
-  { prefix: '/api/account', target: process.env.ACCOUNT_URL || 'http://localhost:4001', name: '1. Tài khoản & Lớp học' },
-  { prefix: '/api/sessions', target: process.env.SESSION_URL || 'http://localhost:4002', name: '2. Buổi học & Mã QR' },
-  { prefix: '/api/attendance', target: process.env.ATTENDANCE_URL || 'http://localhost:4003', name: '3. Điểm danh & Thông báo' },
-  { prefix: '/api/statistics', target: process.env.STATISTICS_URL || 'http://localhost:4004', name: '4. Thống kê' },
+  {
+    prefix: '/api/account',
+    target: process.env.ACCOUNT_URL || 'http://localhost:4001',
+    name: '1. Tài khoản & Lớp học',
+  },
+  {
+    prefix: '/api/sessions',
+    target: process.env.SESSION_URL || 'http://localhost:4002',
+    name: '2. Buổi học & Mã QR',
+  },
+  {
+    prefix: '/api/attendance',
+    target: process.env.ATTENDANCE_URL || 'http://localhost:4003',
+    name: '3. Điểm danh & Thông báo',
+  },
+  {
+    prefix: '/api/statistics',
+    target: process.env.STATISTICS_URL || 'http://localhost:4004',
+    name: '4. Thống kê',
+  },
 ];
 
 const app = express();
-const corsOrigin = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim()) : true;
+const corsOrigin = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((diaChi) => diaChi.trim())
+  : true;
 app.use(cors({ origin: corsOrigin }));
 
 // Không dùng express.json() ở đây để proxy chuyển nguyên body (kể cả upload file)
@@ -44,7 +62,9 @@ app.use(
   swaggerUi.setup(null, {
     explorer: true,
     customSiteTitle: 'API - Hệ thống điểm danh QR',
-    swaggerOptions: { urls: routes.map((r) => ({ url: `${r.prefix}/openapi.json`, name: r.name })) },
+    swaggerOptions: {
+      urls: routes.map((tuyen) => ({ url: `${tuyen.prefix}/openapi.json`, name: tuyen.name })),
+    },
   }),
 );
 
@@ -53,8 +73,8 @@ app.get('/health', async (_req, res) => {
   const services = await Promise.all(
     routes.map(async ({ prefix, target }) => {
       try {
-        const r = await fetch(`${target}/health`, { signal: AbortSignal.timeout(3000) });
-        return { service: prefix, ok: r.ok };
+        const phanHoi = await fetch(`${target}/health`, { signal: AbortSignal.timeout(3000) });
+        return { service: prefix, ok: phanHoi.ok };
       } catch {
         return { service: prefix, ok: false };
       }
@@ -63,9 +83,20 @@ app.get('/health', async (_req, res) => {
   res.json({ gateway: true, services });
 });
 
-app.get('/', (_req, res) => res.json({ name: 'API Gateway - Hệ thống điểm danh QR', docs: '/docs', health: '/health' }));
+app.get('/', (_req, res) =>
+  res.json({
+    name: 'API Gateway - Hệ thống điểm danh QR',
+    docs: '/docs',
+    health: '/health',
+  }),
+);
 
-app.listen(CONG_MAY_CHU, (err) => {
-  if (err) { console.error(`Không mở được cổng ${CONG_MAY_CHU}:`, err.message); process.exit(1); }
-  console.log(`[gateway] chạy tại http://localhost:${CONG_MAY_CHU}  (Swagger tổng hợp: /docs)`);
+app.listen(CONG_MAY_CHU, (loi) => {
+  if (loi) {
+    console.error(`Không mở được cổng ${CONG_MAY_CHU}:`, loi.message);
+    process.exit(1);
+  }
+  console.log(
+    `[gateway] chạy tại http://localhost:${CONG_MAY_CHU}  (Swagger tổng hợp: /docs)`,
+  );
 });

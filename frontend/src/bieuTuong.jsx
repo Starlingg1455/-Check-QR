@@ -1,0 +1,291 @@
+// Các biểu tượng (icon) dùng trong giao diện.
+// Hình SVG lấy nguyên từ thư viện Lucide (giấy phép ISC). Chỉ giữ 66 biểu tượng đang dùng thay vì cài cả thư viện
+// 1.748 biểu tượng (3.500 tệp, 32 MB). Cách dùng giống hệt: <Users size={16} color="red" className="..." />
+function taoBieuTuong(lop, noiDung) {
+  return function BieuTuong({
+    size = 24,
+    color = 'currentColor',
+    strokeWidth = 2,
+    className = '',
+    ...conLai
+  }) {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={[lop, className].filter(Boolean).join(' ')}
+        {...conLai}
+        dangerouslySetInnerHTML={{ __html: noiDung }}
+      />
+    );
+  };
+}
+
+export const AlertTriangle = taoBieuTuong(
+  'lucide lucide-triangle-alert',
+  '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path>',
+);
+export const ArrowLeft = taoBieuTuong(
+  'lucide lucide-arrow-left',
+  '<path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path>',
+);
+export const ArrowRight = taoBieuTuong(
+  'lucide lucide-arrow-right',
+  '<path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path>',
+);
+export const ArrowUpDown = taoBieuTuong(
+  'lucide lucide-arrow-up-down',
+  '<path d="m21 16-4 4-4-4"></path><path d="M17 20V4"></path><path d="m3 8 4-4 4 4"></path><path d="M7 4v16"></path>',
+);
+export const Ban = taoBieuTuong(
+  'lucide lucide-ban',
+  '<circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path>',
+);
+export const BarChart3 = taoBieuTuong(
+  'lucide lucide-chart-column',
+  '<path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path>',
+);
+export const Bell = taoBieuTuong(
+  'lucide lucide-bell',
+  '<path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path>',
+);
+export const BellRing = taoBieuTuong(
+  'lucide lucide-bell-ring',
+  '<path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M22 8c0-2.3-.8-4.3-2-6"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path><path d="M4 2C2.8 3.7 2 5.7 2 8"></path>',
+);
+export const BookOpen = taoBieuTuong(
+  'lucide lucide-book-open',
+  '<path d="M12 7v14"></path><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"></path>',
+);
+export const CalendarCheck = taoBieuTuong(
+  'lucide lucide-calendar-check',
+  '<path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="m9 16 2 2 4-4"></path>',
+);
+export const CalendarDays = taoBieuTuong(
+  'lucide lucide-calendar-days',
+  '<path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path>',
+);
+export const Camera = taoBieuTuong(
+  'lucide lucide-camera',
+  '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle>',
+);
+export const CameraOff = taoBieuTuong(
+  'lucide lucide-camera-off',
+  '<line x1="2" x2="22" y1="2" y2="22"></line><path d="M7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16"></path><path d="M9.5 4h5L17 7h3a2 2 0 0 1 2 2v7.5"></path><path d="M14.121 15.121A3 3 0 1 1 9.88 10.88"></path>',
+);
+export const Check = taoBieuTuong(
+  'lucide lucide-check',
+  '<path d="M20 6 9 17l-5-5"></path>',
+);
+export const CheckCircle2 = taoBieuTuong(
+  'lucide lucide-circle-check',
+  '<circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path>',
+);
+export const ChevronDown = taoBieuTuong(
+  'lucide lucide-chevron-down',
+  '<path d="m6 9 6 6 6-6"></path>',
+);
+export const ChevronRight = taoBieuTuong(
+  'lucide lucide-chevron-right',
+  '<path d="m9 18 6-6-6-6"></path>',
+);
+export const ClipboardCheck = taoBieuTuong(
+  'lucide lucide-clipboard-check',
+  '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="m9 14 2 2 4-4"></path>',
+);
+export const Clock = taoBieuTuong(
+  'lucide lucide-clock',
+  '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>',
+);
+export const Clock3 = taoBieuTuong(
+  'lucide lucide-clock3',
+  '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16.5 12"></polyline>',
+);
+export const Copy = taoBieuTuong(
+  'lucide lucide-copy',
+  '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>',
+);
+export const Download = taoBieuTuong(
+  'lucide lucide-download',
+  '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line>',
+);
+export const Eye = taoBieuTuong(
+  'lucide lucide-eye',
+  '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle>',
+);
+export const FilePlus2 = taoBieuTuong(
+  'lucide lucide-file-plus2',
+  '<path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M3 15h6"></path><path d="M6 12v6"></path>',
+);
+export const FileText = taoBieuTuong(
+  'lucide lucide-file-text',
+  '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path>',
+);
+export const GraduationCap = taoBieuTuong(
+  'lucide lucide-graduation-cap',
+  '<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"></path><path d="M22 10v6"></path><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path>',
+);
+export const Hash = taoBieuTuong(
+  'lucide lucide-hash',
+  '<line x1="4" x2="20" y1="9" y2="9"></line><line x1="4" x2="20" y1="15" y2="15"></line><line x1="10" x2="8" y1="3" y2="21"></line><line x1="16" x2="14" y1="3" y2="21"></line>',
+);
+export const ImageOff = taoBieuTuong(
+  'lucide lucide-image-off',
+  '<line x1="2" x2="22" y1="2" y2="22"></line><path d="M10.41 10.41a2 2 0 1 1-2.83-2.83"></path><line x1="13.5" x2="6" y1="13.5" y2="21"></line><line x1="18" x2="21" y1="12" y2="15"></line><path d="M3.59 3.59A1.99 1.99 0 0 0 3 5v14a2 2 0 0 0 2 2h14c.55 0 1.052-.22 1.41-.59"></path><path d="M21 15V5a2 2 0 0 0-2-2H9"></path>',
+);
+export const ImagePlus = taoBieuTuong(
+  'lucide lucide-image-plus',
+  '<path d="M16 5h6"></path><path d="M19 2v6"></path><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5"></path><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path><circle cx="9" cy="9" r="2"></circle>',
+);
+export const Info = taoBieuTuong(
+  'lucide lucide-info',
+  '<circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path>',
+);
+export const Keyboard = taoBieuTuong(
+  'lucide lucide-keyboard',
+  '<path d="M10 8h.01"></path><path d="M12 12h.01"></path><path d="M14 8h.01"></path><path d="M16 12h.01"></path><path d="M18 8h.01"></path><path d="M6 8h.01"></path><path d="M7 16h10"></path><path d="M8 12h.01"></path><rect width="20" height="16" x="2" y="4" rx="2"></rect>',
+);
+export const LayoutDashboard = taoBieuTuong(
+  'lucide lucide-layout-dashboard',
+  '<rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect>',
+);
+export const Loader2 = taoBieuTuong(
+  'lucide lucide-loader-circle',
+  '<path d="M21 12a9 9 0 1 1-6.219-8.56"></path>',
+);
+export const Lock = taoBieuTuong(
+  'lucide lucide-lock',
+  '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>',
+);
+export const LogOut = taoBieuTuong(
+  'lucide lucide-log-out',
+  '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line>',
+);
+export const Mail = taoBieuTuong(
+  'lucide lucide-mail',
+  '<rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>',
+);
+export const MailCheck = taoBieuTuong(
+  'lucide lucide-mail-check',
+  '<path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"></path><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path><path d="m16 19 2 2 4-4"></path>',
+);
+export const MapPin = taoBieuTuong(
+  'lucide lucide-map-pin',
+  '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle>',
+);
+export const Maximize2 = taoBieuTuong(
+  'lucide lucide-maximize2',
+  '<polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" x2="14" y1="3" y2="10"></line><line x1="3" x2="10" y1="21" y2="14"></line>',
+);
+export const Minus = taoBieuTuong('lucide lucide-minus', '<path d="M5 12h14"></path>');
+export const Moon = taoBieuTuong(
+  'lucide lucide-moon',
+  '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>',
+);
+export const MousePointerClick = taoBieuTuong(
+  'lucide lucide-mouse-pointer-click',
+  '<path d="M14 4.1 12 6"></path><path d="m5.1 8-2.9-.8"></path><path d="m6 12-1.9 2"></path><path d="M7.2 2.2 8 5.1"></path><path d="M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z"></path>',
+);
+export const Paperclip = taoBieuTuong(
+  'lucide lucide-paperclip',
+  '<path d="M13.234 20.252 21 12.3"></path><path d="m16 6-8.414 8.586a2 2 0 0 0 0 2.828 2 2 0 0 0 2.828 0l8.414-8.586a4 4 0 0 0 0-5.656 4 4 0 0 0-5.656 0l-8.415 8.585a6 6 0 1 0 8.486 8.486"></path>',
+);
+export const PartyPopper = taoBieuTuong(
+  'lucide lucide-party-popper',
+  '<path d="M5.8 11.3 2 22l10.7-3.79"></path><path d="M4 3h.01"></path><path d="M22 8h.01"></path><path d="M15 2h.01"></path><path d="M22 20h.01"></path><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"></path><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"></path><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"></path><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"></path>',
+);
+export const Pencil = taoBieuTuong(
+  'lucide lucide-pencil',
+  '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path>',
+);
+export const Percent = taoBieuTuong(
+  'lucide lucide-percent',
+  '<line x1="19" x2="5" y1="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle>',
+);
+export const Play = taoBieuTuong(
+  'lucide lucide-play',
+  '<polygon points="6 3 20 12 6 21 6 3"></polygon>',
+);
+export const Plus = taoBieuTuong(
+  'lucide lucide-plus',
+  '<path d="M5 12h14"></path><path d="M12 5v14"></path>',
+);
+export const Presentation = taoBieuTuong(
+  'lucide lucide-presentation',
+  '<path d="M2 3h20"></path><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"></path><path d="m7 21 5-5 5 5"></path>',
+);
+export const QrCode = taoBieuTuong(
+  'lucide lucide-qr-code',
+  '<rect width="5" height="5" x="3" y="3" rx="1"></rect><rect width="5" height="5" x="16" y="3" rx="1"></rect><rect width="5" height="5" x="3" y="16" rx="1"></rect><path d="M21 16h-3a2 2 0 0 0-2 2v3"></path><path d="M21 21v.01"></path><path d="M12 7v3a2 2 0 0 1-2 2H7"></path><path d="M3 12h.01"></path><path d="M12 3h.01"></path><path d="M12 16v.01"></path><path d="M16 12h1"></path><path d="M21 12v.01"></path><path d="M12 21v-1"></path>',
+);
+export const Radio = taoBieuTuong(
+  'lucide lucide-radio',
+  '<path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path><circle cx="12" cy="12" r="2"></circle><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"></path>',
+);
+export const Save = taoBieuTuong(
+  'lucide lucide-save',
+  '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path><path d="M7 3v4a1 1 0 0 0 1 1h7"></path>',
+);
+export const ScanLine = taoBieuTuong(
+  'lucide lucide-scan-line',
+  '<path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path>',
+);
+export const Search = taoBieuTuong(
+  'lucide lucide-search',
+  '<circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path>',
+);
+export const Send = taoBieuTuong(
+  'lucide lucide-send',
+  '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"></path><path d="m21.854 2.147-10.94 10.939"></path>',
+);
+export const ShieldAlert = taoBieuTuong(
+  'lucide lucide-shield-alert',
+  '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path>',
+);
+export const ShieldCheck = taoBieuTuong(
+  'lucide lucide-shield-check',
+  '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path>',
+);
+export const Smartphone = taoBieuTuong(
+  'lucide lucide-smartphone',
+  '<rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><path d="M12 18h.01"></path>',
+);
+export const Sun = taoBieuTuong(
+  'lucide lucide-sun',
+  '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>',
+);
+export const Trash2 = taoBieuTuong(
+  'lucide lucide-trash2',
+  '<path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line>',
+);
+export const Undo2 = taoBieuTuong(
+  'lucide lucide-undo2',
+  '<path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"></path>',
+);
+export const UserPlus = taoBieuTuong(
+  'lucide lucide-user-plus',
+  '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" x2="19" y1="8" y2="14"></line><line x1="22" x2="16" y1="11" y2="11"></line>',
+);
+export const UserRound = taoBieuTuong(
+  'lucide lucide-user-round',
+  '<circle cx="12" cy="8" r="5"></circle><path d="M20 21a8 8 0 0 0-16 0"></path>',
+);
+export const Users = taoBieuTuong(
+  'lucide lucide-users',
+  '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>',
+);
+export const X = taoBieuTuong(
+  'lucide lucide-x',
+  '<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>',
+);
+export const XCircle = taoBieuTuong(
+  'lucide lucide-circle-x',
+  '<circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path>',
+);

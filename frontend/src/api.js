@@ -2,17 +2,25 @@
 const DIA_CHI_GOC_API = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api';
 
 export const layToken = () => {
-  try { return localStorage.getItem('token'); } catch { return null; }
+  try {
+    return localStorage.getItem('token');
+  } catch {
+    return null;
+  }
 };
-export const datToken = (t) => {
-  try { t ? localStorage.setItem('token', t) : localStorage.removeItem('token'); } catch { /* bỏ qua */ }
+export const datToken = (token) => {
+  try {
+    token ? localStorage.setItem('token', token) : localStorage.removeItem('token');
+  } catch {
+    /* bỏ qua */
+  }
 };
 
 async function request(path, { method = 'GET', body, form } = {}) {
   const token = layToken();
-  let res;
+  let phanHoi;
   try {
-    res = await fetch(DIA_CHI_GOC_API + path, {
+    phanHoi = await fetch(DIA_CHI_GOC_API + path, {
       method,
       headers: {
         ...(body ? { 'Content-Type': 'application/json' } : {}),
@@ -23,43 +31,43 @@ async function request(path, { method = 'GET', body, form } = {}) {
   } catch {
     throw new Error('Không kết nối được máy chủ. Hãy kiểm tra mạng hoặc thử lại sau.');
   }
-  if (res.status === 401 && token) {
+  if (phanHoi.status === 401 && token) {
     datToken(null);
     window.dispatchEvent(new Event('auth:expired'));
   }
-  return res;
+  return phanHoi;
 }
 
 export async function api(path, options) {
-  const res = await request(path, options);
-  if (res.status === 204) return null;
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    const err = new Error(data?.error || `Có lỗi xảy ra (${res.status})`);
-    err.data = data; // giữ lại chi tiết lỗi do máy chủ trả về
-    throw err;
+  const phanHoi = await request(path, options);
+  if (phanHoi.status === 204) return null;
+  const data = await phanHoi.json().catch(() => null);
+  if (!phanHoi.ok) {
+    const loi = new Error(data?.error || `Có lỗi xảy ra (${phanHoi.status})`);
+    loi.data = data; // giữ lại chi tiết lỗi do máy chủ trả về
+    throw loi;
   }
   return data;
 }
 
 // Tải ảnh có kèm token, trả về đường dẫn tạm dùng cho thẻ <img>
 export async function taiAnhVeUrl(path) {
-  const res = await request(path);
-  if (!res.ok) throw new Error('Không tải được ảnh');
-  return URL.createObjectURL(await res.blob());
+  const phanHoi = await request(path);
+  if (!phanHoi.ok) throw new Error('Không tải được ảnh');
+  return URL.createObjectURL(await phanHoi.blob());
 }
 
 // Tải file (Excel) có kèm token đăng nhập
 export async function download(path, filename) {
-  const res = await request(path);
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
+  const phanHoi = await request(path);
+  if (!phanHoi.ok) {
+    const data = await phanHoi.json().catch(() => null);
     throw new Error(data?.error || 'Không tải được file');
   }
-  const url = URL.createObjectURL(await res.blob());
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  const duongDan = URL.createObjectURL(await phanHoi.blob());
+  const lienKet = document.createElement('a');
+  lienKet.href = duongDan;
+  lienKet.download = filename;
+  lienKet.click();
+  URL.revokeObjectURL(duongDan);
 }

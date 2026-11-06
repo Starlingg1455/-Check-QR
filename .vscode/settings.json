@@ -1,0 +1,9 @@
+{
+  // Ẩn thư mục thư viện cho gọn (vẫn tồn tại, chỉ không hiện trong khung Explorer)
+  "files.exclude": {
+    "**/node_modules": true
+  },
+  "search.exclude": {
+    "**/node_modules": true
+  }
+}

@@ -1,9 +1,9 @@
 import cors from 'cors';
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
-import { taoCoSoDuLieu, xuLyLoi } from './tien-ich.js';
+import { taoCoSoDuLieu, xuLyLoi } from './tienIch.js';
 import { taoApi } from './api.js';
-import { taiLieuApi } from './tai-lieu-api.js';
+import { taiLieuApi } from './taiLieuApi.js';
 
 // Service 1: Tài khoản & Lớp học (cổng 4001)
 
@@ -50,7 +50,12 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(taiLieuApi));
 app.use(taoApi(db));
 app.use(xuLyLoi);
 
-app.listen(CONG_MAY_CHU, (err) => {
-  if (err) { console.error(`Không mở được cổng ${CONG_MAY_CHU}:`, err.message); process.exit(1); }
-  console.log(`[account-class] chạy tại http://localhost:${CONG_MAY_CHU}  (Swagger: /docs)`);
+app.listen(CONG_MAY_CHU, (loi) => {
+  if (loi) {
+    console.error(`Không mở được cổng ${CONG_MAY_CHU}:`, loi.message);
+    process.exit(1);
+  }
+  console.log(
+    `[account-class] chạy tại http://localhost:${CONG_MAY_CHU}  (Swagger: /docs)`,
+  );
 });

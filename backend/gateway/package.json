@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --env-file-if-exists=../../.env src/may-chu.js",
-    "watch": "node --watch-path=./src --env-file-if-exists=../../.env src/may-chu.js",
-    "start": "node src/may-chu.js"
+    "dev": "node --env-file-if-exists=../../.env src/mayChu.js",
+    "watch": "node --watch-path=./src --env-file-if-exists=../../.env src/mayChu.js",
+    "start": "node src/mayChu.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -8,9 +8,9 @@
   "scripts": {
     "dev": "concurrently -n gateway,account,session,attend,stats,web -c blue,green,yellow,magenta,cyan,white \"npm run dev -w backend/gateway\" \"npm run dev -w backend/services/tai-khoan-lop-hoc\" \"npm run dev -w backend/services/buoi-hoc-qr\" \"npm run dev -w backend/services/diem-danh\" \"npm run dev -w backend/services/thong-ke\" \"npm run dev -w frontend\"",
     "backend": "concurrently -n gateway,account,session,attend,stats \"npm run dev -w backend/gateway\" \"npm run dev -w backend/services/tai-khoan-lop-hoc\" \"npm run dev -w backend/services/buoi-hoc-qr\" \"npm run dev -w backend/services/diem-danh\" \"npm run dev -w backend/services/thong-ke\"",
-    "tao-du-lieu-gia": "node scripts/tao-du-lieu-gia.mjs",
-    "nhap-lop-truong": "node scripts/nhap-lop-truong.mjs",
-    "kiem-thu": "node scripts/kiem-thu.mjs"
+    "tao-du-lieu-gia": "node scripts/taoDuLieuGia.mjs",
+    "nhap-lop-truong": "node scripts/nhapLopTruong.mjs",
+    "kiem-thu": "node scripts/kiemThu.mjs"
   },
   "devDependencies": { "concurrently": "^9.1.0" }
 }

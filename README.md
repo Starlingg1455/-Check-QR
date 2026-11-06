@@ -11,21 +11,20 @@ backend/
   gateway/                Cổng API: cửa ngõ duy nhất của frontend, chuyển tiếp tới 4 dịch vụ, Swagger tổng hợp
   services/               4 dịch vụ độc lập (mỗi dịch vụ có package.json riêng, triển khai riêng được)
 scripts/                  Tạo dữ liệu giả, nhập lớp của trường, kiểm thử
-du-lieu-truong/           (chỉ ở máy bạn, không đưa lên git) bảng điểm danh thật của trường
 ```
 
 Bên trong mỗi dịch vụ (`backend/services/<tên>/src/`) luôn có đúng 4 tệp, mỗi tệp một nhiệm vụ rõ ràng:
 
 | Tệp | Nhiệm vụ |
 |---|---|
-| `may-chu.js` | Khởi động: tạo bảng dữ liệu, gắn API, mở cổng |
+| `mayChu.js` | Khởi động: tạo bảng dữ liệu, gắn API, mở cổng |
 | `api.js` | **API REST**: các đường dẫn GET/POST/PUT/DELETE và nghiệp vụ |
-| `tai-lieu-api.js` | Tài liệu OpenAPI (Swagger) mô tả các đường dẫn ở `api.js` |
-| `tien-ich.js` | Dùng chung: gọi REST sang dịch vụ khác, cơ sở dữ liệu, xác thực JWT |
+| `taiLieuApi.js` | Tài liệu OpenAPI (Swagger) mô tả các đường dẫn ở `api.js` |
+| `tienIch.js` | Dùng chung: gọi REST sang dịch vụ khác, cơ sở dữ liệu, xác thực JWT |
 
 Bên trong `frontend/src/`: `main.jsx`, `App.jsx` (các đường dẫn trang), `api.js` (gọi REST tới cổng API),
-`ngu-canh.jsx` (đăng nhập, giao diện sáng/tối, cỡ chữ), `thanh-phan.jsx` (thành phần dùng chung),
-`bieu-do.jsx`, `trang-*.jsx` (các trang), `chi-tiet.jsx` (các cửa sổ xem chi tiết), `giao-dien.css`.
+`nguCanh.jsx` (đăng nhập, giao diện sáng/tối, cỡ chữ), `thanhPhan.jsx` (thành phần dùng chung),
+`bieuDo.jsx`, `trang-*.jsx` (các trang), `chiTiet.jsx` (các cửa sổ xem chi tiết), `giaoDien.css`.
 
 ## Bốn dịch vụ
 
@@ -46,7 +45,7 @@ Tên đường dẫn qua cổng API vẫn giữ nguyên: `/api/account`, `/api/s
 | # | Kiểu | Trong đồ án |
 |---|---|---|
 | 1 | **REST** | **Đang dùng cho toàn bộ hệ thống**: trình duyệt gọi cổng API, cổng API chuyển tiếp tới dịch vụ, các dịch vụ gọi nhau. Dùng JSON qua HTTP, mã trạng thái (200, 201, 204, 400, 401, 403, 404, 409, 410, 502), xác thực JWT. Phần này nằm ở `api.js` của từng dịch vụ và `frontend/src/api.js` |
-| 2 | SOAP | Không dùng. Tương đương "mô tả hợp đồng" của SOAP (WSDL) là tài liệu OpenAPI/Swagger ở `tai-lieu-api.js`, xem tại `http://localhost:4000/docs` |
+| 2 | SOAP | Không dùng. Tương đương "mô tả hợp đồng" của SOAP (WSDL) là tài liệu OpenAPI/Swagger ở `taiLieuApi.js`, xem tại `http://localhost:4000/docs` |
 | 3 | gRPC | Không dùng. Các dịch vụ gọi nhau bằng REST/JSON, đủ đơn giản cho quy mô đồ án |
 | 4 | GraphQL | Không dùng. Dịch vụ thống kê tổng hợp dữ liệu từ 3 dịch vụ rồi trả về một lần (`/classes/:id/overview`), việc này tương tự mục đích của GraphQL |
 | 5 | WebHook | Không dùng. Email cảnh báo được gửi khi giảng viên bấm nút, không phải do sự kiện bên ngoài đẩy vào |
@@ -104,3 +103,12 @@ Lưu ý:
 - Đặt `CORS_ORIGIN` ở cổng API là domain frontend.
 - Frontend là SPA, cần rewrite mọi đường dẫn về `index.html` (Vercel: `frontend/vercel.json`; Netlify: `frontend/public/_redirects`, đã có sẵn).
 - Gửi email thật: đặt `SMTP_HOST/PORT/USER/PASS` cho dịch vụ `diem-danh` (Gmail dùng App Password, hoặc Brevo/Resend). Chưa đặt thì hệ thống chỉ ghi log và hiện trạng thái "Ghi log".
+
+### Các bước làm theo thứ tự
+
+1. **GitHub:** tạo repo rỗng, rồi `git remote add origin <địa-chỉ-repo>` và `git push -u origin main`.
+2. **Supabase:** tạo project, vào Connect, chọn Session pooler, copy chuỗi kết nối (thay mật khẩu thật). Đó là `DATABASE_URL`.
+3. **Render:** New > Blueprint, chọn repo. Nhập `DATABASE_URL` (dán giống nhau cho `qr-account`, `qr-session`, `qr-attendance`), `TEACHER_EMAILS`, `GOOGLE_CLIENT_ID` (nếu dùng). Chờ 5 dịch vụ lên trạng thái Live. Mở `<địa-chỉ-gateway>/health` để kiểm tra.
+4. **Vercel:** import repo, Root Directory `frontend`, thêm `VITE_API_URL` = địa chỉ gateway (không có `/` cuối), rồi Deploy.
+5. **Quay lại Render:** đặt `CORS_ORIGIN` ở `qr-gateway` bằng địa chỉ Vercel.
+6. **Trước khi dùng thật:** đổi `ALLOW_DEV_LOGIN` thành `false` ở `qr-account`.

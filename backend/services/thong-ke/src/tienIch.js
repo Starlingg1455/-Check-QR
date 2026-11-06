@@ -29,15 +29,16 @@ export async function goiDichVu(baseUrl, path, { token, method = 'GET', body } =
     throw new LoiHttp(502, `Không kết nối được service ${baseUrl}`);
   }
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new LoiHttp(res.status, data?.error || `Lỗi từ service (${res.status})`);
+  if (!res.ok)
+    throw new LoiHttp(res.status, data?.error || `Lỗi từ service (${res.status})`);
   return data;
 }
 
 // Middleware xử lý lỗi chung (đặt cuối cùng)
-export function xuLyLoi(err, _req, res, _next) {
-  const status = err.status || 500;
-  if (status >= 500) console.error(err);
-  res.status(status).json({ error: err.message || 'Lỗi máy chủ' });
+export function xuLyLoi(loi, _req, res, _next) {
+  const status = loi.status || 500;
+  if (status >= 500) console.error(loi);
+  res.status(status).json({ error: loi.message || 'Lỗi máy chủ' });
 }
 
 // ============ Xác thực bằng JWT ============
@@ -69,7 +70,12 @@ export function batBuocDangNhap(req, _res, next) {
 // Middleware: chỉ cho phép một vai trò ('teacher' hoặc 'student')
 export const batBuocVaiTro = (role) => (req, _res, next) => {
   if (req.user?.role !== role) {
-    throw new LoiHttp(403, role === 'teacher' ? 'Chỉ giảng viên được thực hiện' : 'Chỉ sinh viên được thực hiện');
+    throw new LoiHttp(
+      403,
+      role === 'teacher'
+        ? 'Chỉ giảng viên được thực hiện'
+        : 'Chỉ sinh viên được thực hiện',
+    );
   }
   next();
 };

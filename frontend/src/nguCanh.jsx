@@ -15,7 +15,10 @@ export function NhaCungCapXacThuc({ children }) {
   // Mở lại trang: nếu còn token thì lấy thông tin người dùng
   useEffect(() => {
     if (!layToken()) return;
-    api('/account/auth/me').then(setUser).catch(() => datToken(null)).finally(() => setLoading(false));
+    api('/account/auth/me')
+      .then(setUser)
+      .catch(() => datToken(null))
+      .finally(() => setLoading(false));
   }, []);
 
   // Token hết hạn => về trang đăng nhập
@@ -25,10 +28,20 @@ export function NhaCungCapXacThuc({ children }) {
     return () => window.removeEventListener('auth:expired', onExpired);
   }, []);
 
-  const login = useCallback((token, u) => { datToken(token); setUser(u); }, []);
-  const logout = useCallback(() => { datToken(null); setUser(null); }, []);
+  const login = useCallback((token, nguoiDung) => {
+    datToken(token);
+    setUser(nguoiDung);
+  }, []);
+  const logout = useCallback(() => {
+    datToken(null);
+    setUser(null);
+  }, []);
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 // ============ Giao diện sáng / tối ============
@@ -41,15 +54,20 @@ const heThongDangToi = () => window.matchMedia?.('(prefers-color-scheme: dark)')
 export function NhaCungCapGiaoDien({ children }) {
   // 'light' | 'dark' | null (theo hệ điều hành)
   const [choice, setChoice] = useState(() => {
-    try { const t = localStorage.getItem('theme'); return t === 'light' || t === 'dark' ? t : null; } catch { return null; }
+    try {
+      const giaoDienLuu = localStorage.getItem('theme');
+      return giaoDienLuu === 'light' || giaoDienLuu === 'dark' ? giaoDienLuu : null;
+    } catch {
+      return null;
+    }
   });
   const [osDark, setOsDark] = useState(heThongDangToi());
 
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const on = () => setOsDark(mq.matches);
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
+    const truyVanToiMau = window.matchMedia('(prefers-color-scheme: dark)');
+    const khiDoi = () => setOsDark(truyVanToiMau.matches);
+    truyVanToiMau.addEventListener('change', khiDoi);
+    return () => truyVanToiMau.removeEventListener('change', khiDoi);
   }, []);
 
   const resolved = choice || (osDark ? 'dark' : 'light');
@@ -57,11 +75,19 @@ export function NhaCungCapGiaoDien({ children }) {
   const toggle = useCallback(() => {
     const next = resolved === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next); // đặt trước để biểu đồ đọc đúng màu
-    try { localStorage.setItem('theme', next); } catch { /* bỏ qua */ }
+    try {
+      localStorage.setItem('theme', next);
+    } catch {
+      /* bỏ qua */
+    }
     setChoice(next);
   }, [resolved]);
 
-  return <ThemeContext.Provider value={{ theme: resolved, toggle }}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={{ theme: resolved, toggle }}>
+      {children}
+    </ThemeContext.Provider>
+  );
 }
 
 // ============ Cỡ chữ tự co giãn theo màn hình ============
@@ -78,7 +104,12 @@ const HE_SO_LON_NHAT = 1.6;
 const BUOC_CHINH = 0.05; // mỗi lần bấm A- / A+ đổi 5%
 
 const docHeSoCoChu = () => {
-  try { const v = Number(localStorage.getItem('zoom')); return v >= HE_SO_NHO_NHAT && v <= HE_SO_LON_NHAT ? v : 1; } catch { return 1; }
+  try {
+    const giaTri = Number(localStorage.getItem('zoom'));
+    return giaTri >= HE_SO_NHO_NHAT && giaTri <= HE_SO_LON_NHAT ? giaTri : 1;
+  } catch {
+    return 1;
+  }
 };
 
 export function NhaCungCapCoChu({ children }) {
@@ -86,9 +117,9 @@ export function NhaCungCapCoChu({ children }) {
   const [width, setWidth] = useState(window.innerWidth);
 
   useEffect(() => {
-    const on = () => setWidth(window.innerWidth);
-    window.addEventListener('resize', on);
-    return () => window.removeEventListener('resize', on);
+    const khiDoi = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', khiDoi);
+    return () => window.removeEventListener('resize', khiDoi);
   }, []);
 
   // Điện thoại/máy tính bảng nhỏ: không phóng to
@@ -103,13 +134,29 @@ export function NhaCungCapCoChu({ children }) {
   }, [total]);
 
   const change = (delta) => {
-    const next = Math.round(Math.min(HE_SO_LON_NHAT, Math.max(HE_SO_NHO_NHAT, factor + delta)) * 20) / 20; // làm tròn theo bước 5%
+    const next =
+      Math.round(
+        Math.min(HE_SO_LON_NHAT, Math.max(HE_SO_NHO_NHAT, factor + delta)) * 20,
+      ) / 20; // làm tròn theo bước 5%
     setFactor(next);
-    try { localStorage.setItem('zoom', String(next)); } catch { /* bỏ qua */ }
+    try {
+      localStorage.setItem('zoom', String(next));
+    } catch {
+      /* bỏ qua */
+    }
   };
 
   return (
-    <ZoomContext.Provider value={{ factor, total, enabled: width >= 1000, bigger: () => change(BUOC_CHINH), smaller: () => change(-STEP), reset: () => change(1 - factor) }}>
+    <ZoomContext.Provider
+      value={{
+        factor,
+        total,
+        enabled: width >= 1000,
+        bigger: () => change(BUOC_CHINH),
+        smaller: () => change(-STEP),
+        reset: () => change(1 - factor),
+      }}
+    >
       {children}
     </ZoomContext.Provider>
   );

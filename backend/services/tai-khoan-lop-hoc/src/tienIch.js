@@ -1,11 +1,10 @@
-// Các hàm dùng chung của dịch vụ "Điểm danh & Thông báo": gọi REST sang dịch vụ khác, cơ sở dữ liệu, xác thực JWT.
+// Các hàm dùng chung của dịch vụ "Tài khoản & Lớp học": gọi REST sang dịch vụ khác, cơ sở dữ liệu, xác thực JWT.
 // (Mỗi dịch vụ có bản riêng để có thể triển khai độc lập.)
 
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import nodemailer from 'nodemailer';
 import pg from 'pg';
 
 // ============ Lỗi HTTP và gọi sang dịch vụ khác (REST) ============
@@ -34,15 +33,16 @@ export async function goiDichVu(baseUrl, path, { token, method = 'GET', body } =
     throw new LoiHttp(502, `Không kết nối được service ${baseUrl}`);
   }
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new LoiHttp(res.status, data?.error || `Lỗi từ service (${res.status})`);
+  if (!res.ok)
+    throw new LoiHttp(res.status, data?.error || `Lỗi từ service (${res.status})`);
   return data;
 }
 
 // Middleware xử lý lỗi chung (đặt cuối cùng)
-export function xuLyLoi(err, _req, res, _next) {
-  const status = err.status || 500;
-  if (status >= 500) console.error(err);
-  res.status(status).json({ error: err.message || 'Lỗi máy chủ' });
+export function xuLyLoi(loi, _req, res, _next) {
+  const status = loi.status || 500;
+  if (status >= 500) console.error(loi);
+  res.status(status).json({ error: loi.message || 'Lỗi máy chủ' });
 }
 
 // ============ Cơ sở dữ liệu (PostgreSQL / PGlite) ============
@@ -55,10 +55,10 @@ export async function taoCoSoDuLieu(schema) {
   let runExec;
 
   if (process.env.DATABASE_URL) {
-    const url = process.env.DATABASE_URL;
-    const isLocal = /localhost|127\.0\.0\.1/.test(url);
+    const duongDan = process.env.DATABASE_URL;
+    const isLocal = /localhost|127\.0\.0\.1/.test(duongDan);
     const pool = new pg.Pool({
-      connectionString: url,
+      connectionString: duongDan,
       ssl: isLocal ? false : { rejectUnauthorized: false },
       max: 5,
     });
@@ -72,9 +72,12 @@ export async function taoCoSoDuLieu(schema) {
     if (process.env.DATA_DIR === 'memory') {
       lite = new PGlite();
     } else {
-      const dir = path.resolve(process.env.DATA_DIR || path.join(os.homedir(), '.diem-danh-qr'), schema);
-      fs.mkdirSync(dir, { recursive: true });
-      lite = new PGlite(dir);
+      const thuMuc = path.resolve(
+        process.env.DATA_DIR || path.join(os.homedir(), '.diem-danh-qr'),
+        schema,
+      );
+      fs.mkdirSync(thuMuc, { recursive: true });
+      lite = new PGlite(thuMuc);
     }
     runQuery = (text, params) => lite.query(text, params);
     runExec = (text) => lite.exec(text);
@@ -119,36 +122,12 @@ export function batBuocDangNhap(req, _res, next) {
 // Middleware: chỉ cho phép một vai trò ('teacher' hoặc 'student')
 export const batBuocVaiTro = (role) => (req, _res, next) => {
   if (req.user?.role !== role) {
-    throw new LoiHttp(403, role === 'teacher' ? 'Chỉ giảng viên được thực hiện' : 'Chỉ sinh viên được thực hiện');
+    throw new LoiHttp(
+      403,
+      role === 'teacher'
+        ? 'Chỉ giảng viên được thực hiện'
+        : 'Chỉ sinh viên được thực hiện',
+    );
   }
   next();
 };
-
-// ============ Gửi email ============
-
-// Gửi email cảnh báo. Nếu chưa cấu hình SMTP thì chỉ ghi log (chế độ thử nghiệm).
-
-const transporter = process.env.SMTP_HOST
-  ? nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT || 587),
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
-    })
-  : null;
-
-export const coMail = Boolean(transporter);
-
-// Trả về { status: 'sent' | 'logged' | 'failed', detail }
-export async function guiMail({ to, subject, html }) {
-  if (!transporter) {
-    console.log(`[mail - chưa cấu hình SMTP] Gửi tới ${to}: ${subject}`);
-    return { status: 'logged', detail: 'Chưa cấu hình SMTP nên chỉ ghi log' };
-  }
-  try {
-    await transporter.sendMail({ from: process.env.MAIL_FROM || process.env.SMTP_USER, to, subject, html });
-    return { status: 'sent', detail: 'Đã gửi' };
-  } catch (err) {
-    return { status: 'failed', detail: String(err.message || err).slice(0, 300) };
-  }
-}
