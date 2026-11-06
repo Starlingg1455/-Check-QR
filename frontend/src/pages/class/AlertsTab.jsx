@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Send, ShieldAlert, PartyPopper, MailCheck } from 'lucide-react';
+import { Send, PartyPopper, MailCheck, ChevronRight } from 'lucide-react';
 import { api } from '../../api.js';
+import StudentDetailModal from './StudentDetailModal.jsx';
 import { Card, Empty, Loading, ErrorBox, Badge, LevelBadge, LEVEL, useLoad, useToast, fmtDateTime, BtnSpinner } from '../../components/ui.jsx';
 
 const MAIL = { sent: ['good', 'Đã gửi'], logged: ['info', 'Ghi log'], failed: ['critical', 'Gửi lỗi'] };
 
 /* Tab Cảnh báo: ai sắp bị cấm thi, gửi email nhắc, lịch sử email */
-export default function AlertsTab({ cls, stats }) {
+export default function AlertsTab({ cls, stats, requests }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const [detail, setDetail] = useState(null); // sinh viên đang xem chi tiết
   const history = useLoad(() => api(`/attendance/notifications?classId=${cls.id}`), [cls.id]);
 
   if (stats.loading) return <Loading />;
@@ -38,14 +40,15 @@ export default function AlertsTab({ cls, stats }) {
         ) : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Sinh viên</th><th className="right">Đã vắng</th><th className="hide-sm" style={{ width: '30%' }}>So với giới hạn</th><th>Tình trạng</th></tr></thead>
+              <thead><tr><th>Sinh viên</th><th className="right">Đã vắng</th><th className="hide-sm" style={{ width: '30%' }}>So với giới hạn</th><th>Tình trạng</th><th /></tr></thead>
               <tbody>
                 {risky.map((x) => (
-                  <tr key={x.email}>
+                  <tr key={x.email} className="row-link" tabIndex={0} onClick={() => setDetail(x)} onKeyDown={(e) => e.key === 'Enter' && setDetail(x)} aria-label={`Xem chi tiết ${x.fullName}`}>
                     <td><div className="bold">{x.fullName}</div><div className="xs muted">{x.studentCode}</div></td>
                     <td className="right num bold">{x.absent}/{s.absentLimit}</td>
                     <td className="hide-sm"><div className="bar"><span style={{ width: `${Math.min(100, (x.absent / Math.max(1, s.absentLimit)) * 100)}%`, background: `var(${LEVEL[x.level].cssVar})` }} /></div></td>
                     <td><LevelBadge level={x.level} /></td>
+                    <td className="right"><ChevronRight size={18} className="muted row-chevron" /></td>
                   </tr>
                 ))}
               </tbody>
@@ -53,6 +56,8 @@ export default function AlertsTab({ cls, stats }) {
           </div>
         )}
       </Card>
+
+      {detail && <StudentDetailModal student={{ student_code: detail.studentCode, full_name: detail.fullName, email: detail.email }} stats={s} cls={cls} requests={requests} onClose={() => setDetail(null)} />}
 
       <Card title="Lịch sử email đã gửi" pad={false}>
         {history.loading ? <Loading /> : history.error ? <ErrorBox message={history.error} /> : history.data.length === 0 ? (
