@@ -5,12 +5,13 @@
 // Cấu trúc file được nhận diện tự động:
 //   - Dòng tiêu đề "BẢNG ĐIỂM DANH ... HỌC PHẦN <tên> - LỚP <mã>"   => tên môn + mã lớp
 //   - Dòng header có "Mã SV", "Họ và tên", "Lớp", các cột T1..Tn, "Ghi chú"
-//   - Mỗi cột T* là một buổi. Tiêu đề gộp nhiều cột (vd T2 trải 2 cột) => nhiều buổi trong cùng tuần
+//   - Mỗi tiêu đề T<n> là MỘT buổi (T1 = Buổi 1, T2 = Buổi 2...). Ô gộp trải nhiều cột (vd T2 rộng 2 cột) vẫn chỉ là một buổi:
+//     chỉ đọc cột đầu của ô gộp, các cột còn lại là bản lặp (thư viện đọc file lặp lại giá trị của ô gộp)
 //   - Ô trống = có mặt, X = vắng, P = có phép, M = đi muộn   (suy ra từ cách ghi trong file mẫu)
 //   - Mặc định chỉ tạo các buổi đến cột cuối cùng có ghi dấu; dùng --all để tạo tất cả các cột
 //
 // Lưu ý: file mẫu không có email và không có ngày, nên email được tạo dạng <MSSV>@sv.local và
-// ngày học tính từ --start (mặc định thứ Hai 2025-09-08, mỗi tuần một lần, lần thứ hai cách 3 ngày).
+// ngày học tính từ --start (mặc định thứ Hai 2025-09-08, mỗi buổi cách nhau một tuần).
 // File chứa dữ liệu cá nhân thật: để trong thư mục du-lieu-truong/ (đã nằm trong .gitignore), đừng commit.
 import ExcelJS from 'exceljs';
 
@@ -61,19 +62,17 @@ for (let c = 1; c <= ws.columnCount; c++) {
 }
 if (!colOf.code || !colOf.name) throw new Error('Thiếu cột "Mã SV" hoặc "Họ và tên"');
 
-// các cột buổi: từ sau cột "Lớp" đến trước "Ghi chú", tiêu đề dạng T<số>
+// các cột buổi: từ sau cột "Lớp" đến trước "Ghi chú", tiêu đề dạng T<số>. Mỗi tiêu đề là MỘT buổi.
+// Tiêu đề/ô gộp trải nhiều cột (vd T2): chỉ giữ cột đầu, bỏ các cột phụ (cùng một ô, chỉ là bản lặp).
 const sessionCols = [];
-const groupSize = {};
 for (let c = (colOf.klass || colOf.name) + 1; c < (colOf.note || ws.columnCount + 1); c++) {
-  const h = text(ws.getCell(headerRow, c));
-  const mm = h.match(/^T\s*(\d+)$/i);
+  const cell = ws.getCell(headerRow, c);
+  const mm = text(cell).match(/^T\s*(\d+)$/i);
   if (!mm) continue;
-  const master = ws.getCell(headerRow, c).master?.address || ws.getCell(headerRow, c).address;
-  sessionCols.push({ col: c, week: Number(mm[1]), master });
-  groupSize[master] = (groupSize[master] || 0) + 1;
+  const master = cell.master?.address || cell.address;
+  if (master !== cell.address) continue; // cột phụ của ô gộp
+  sessionCols.push({ col: c, week: Number(mm[1]) });
 }
-const seenInGroup = {};
-for (const s of sessionCols) { s.sub = seenInGroup[s.master] = (seenInGroup[s.master] || 0) + 1; s.multi = groupSize[s.master] > 1; }
 
 // sinh viên: các dòng có Mã SV là số
 const students = [];
@@ -101,7 +100,7 @@ sessionCols.forEach((s, i) => { if (students.some((st) => st.marks[i] !== '')) l
 const held = ALL ? sessionCols : sessionCols.slice(0, lastIdx + 1);
 
 console.log(`Môn: ${courseName} | Lớp: ${classCode}${batch ? ` | Đợt ${batch}` : ''}`);
-console.log(`Sinh viên: ${students.length} | Cột buổi trong file: ${sessionCols.length} | Buổi sẽ tạo: ${held.length}`);
+console.log(`Sinh viên: ${students.length} | Số buổi trong file (T1..): ${sessionCols.length} | Buổi sẽ tạo: ${held.length}`);
 
 // ===================== 2) Nhập qua API =====================
 async function call(path, { token, method = 'GET', body, form } = {}) {
@@ -142,8 +141,8 @@ if (imp.errors.length) { console.error('Import sinh viên có lỗi:', imp.error
 // buổi học: mỗi cột một buổi, đóng ngay sau khi tạo (hệ thống chỉ cho 1 buổi mở)
 const sessionIds = [];
 for (const [i, s] of held.entries()) {
-  const when = new Date(START.getTime() + (s.week - 1) * 7 * 86400000 + (s.sub - 1) * 3 * 86400000);
-  const label = s.multi ? `Tuần ${s.week} (lần ${s.sub})` : `Tuần ${s.week}`;
+  const when = new Date(START.getTime() + (s.week - 1) * 7 * 86400000);
+  const label = `Buổi ${s.week}`; // T1 = Buổi 1, T2 = Buổi 2...
   const ses = await call('/sessions/sessions', { token: T, method: 'POST', body: { classId: cls.id, title: label, openedAt: when.toISOString() } });
   await call(`/sessions/sessions/${ses.id}/close`, { token: T, method: 'POST' });
   sessionIds.push(ses.id);

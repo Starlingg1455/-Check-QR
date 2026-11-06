@@ -75,8 +75,8 @@ Nút **Xuất Excel** của thống kê dùng cùng quy ước mã.
 node scripts/import-mau-truong.mjs du-lieu-truong/<file>.xlsx [--start=2025-09-08] [--all]
 ```
 Script đọc bảng điểm danh của trường (tiêu đề "HỌC PHẦN ... LỚP ...", cột Mã SV / Họ và tên / Lớp, các cột T1..Tn) rồi tạo lớp, sinh viên, các buổi và điểm danh.
-Quy ước ô: để trống = có mặt, `X` = vắng, `P` = có phép, `M` = đi muộn. Mặc định chỉ tạo các buổi đến cột cuối cùng có ghi dấu (`--all` để tạo hết).
-File mẫu không có email và ngày học nên email được tạo dạng `<MSSV>@sv.local` và ngày tính từ `--start`.
+Quy ước ô: để trống = có mặt, `X` = vắng, `P` = có phép, `M` = đi muộn. Mỗi tiêu đề T1, T2... là một buổi (Buổi 1, Buổi 2...); ô gộp trải nhiều cột vẫn chỉ là một buổi. Mặc định chỉ tạo các buổi đến buổi cuối cùng có ghi dấu (`--all` để tạo hết).
+File mẫu không có email và ngày học nên email được tạo dạng `<MSSV>@sv.local` và ngày tính từ `--start` (mỗi buổi cách nhau một tuần).
 Thư mục `du-lieu-truong/` chứa dữ liệu cá nhân thật nên đã nằm trong `.gitignore`, không được commit.
 
 ### Thử quét QR bằng điện thoại ở máy local
