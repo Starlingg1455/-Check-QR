@@ -155,11 +155,20 @@ export function Ring({ value, size = 64, stroke = 7, tone }) {
   );
 }
 
+// Danh sách các cửa sổ đang mở (cái cuối là trên cùng) để Esc chỉ đóng đúng cửa sổ trên cùng
+const modalStack = [];
+
 export function Modal({ title, onClose, children, footer, wide }) {
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
+    const token = Symbol('modal');
+    modalStack.push(token);
+    const onKey = (e) => { if (e.key === 'Escape' && modalStack[modalStack.length - 1] === token) onClose(); };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      const i = modalStack.indexOf(token);
+      if (i >= 0) modalStack.splice(i, 1);
+    };
   }, [onClose]);
   return (
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>

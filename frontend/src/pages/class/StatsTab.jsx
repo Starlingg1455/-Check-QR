@@ -3,10 +3,12 @@ import { Users, Percent, ShieldAlert, CalendarDays, ChevronRight, Ban, FileText 
 import { Card, StatTile, Loading, ErrorBox, Empty, LEVEL } from '../../components/ui.jsx';
 import { RateLineChart, StatusDonut, AbsenceHistogram } from '../../components/charts.jsx';
 import { AttendanceDetailModal, AbsenceDetailModal } from './DrillModals.jsx';
+import StudentDetailModal from './StudentDetailModal.jsx';
 
 /* Tab Tổng quan: chỉ số chính + biểu đồ. Danh sách chi tiết nằm ở tab Sinh viên và Cảnh báo. */
-export default function StatsTab({ stats, atRisk, pending, onGoAlerts, onGoStudents, onGoRequests }) {
+export default function StatsTab({ cls, requests, stats, atRisk, pending, onGoAlerts, onGoStudents, onGoRequests }) {
   const [detail, setDetail] = useState(null); // null | { type: 'attendance' } | { type: 'absence', count }
+  const [studentCode, setStudentCode] = useState(null); // sinh viên đang xem chi tiết (mở chồng lên danh sách)
   if (stats.loading) return <Loading />;
   if (stats.error) return <ErrorBox message={stats.error} onRetry={stats.reload} />;
   const s = stats.data;
@@ -69,8 +71,12 @@ export default function StatsTab({ stats, atRisk, pending, onGoAlerts, onGoStude
         </div>
       </Card>
 
-      {detail?.type === 'attendance' && <AttendanceDetailModal stats={s} onClose={() => setDetail(null)} />}
-      {detail?.type === 'absence' && <AbsenceDetailModal count={detail.count} stats={s} onClose={() => setDetail(null)} />}
+      {detail?.type === 'attendance' && <AttendanceDetailModal stats={s} onOpenStudent={setStudentCode} onClose={() => setDetail(null)} />}
+      {detail?.type === 'absence' && <AbsenceDetailModal count={detail.count} stats={s} onOpenStudent={setStudentCode} onClose={() => setDetail(null)} />}
+      {studentCode && (() => {
+        const p = s.perStudent.find((x) => String(x.studentCode) === String(studentCode));
+        return p ? <StudentDetailModal student={{ student_code: p.studentCode, full_name: p.fullName, email: p.email }} stats={s} cls={cls} requests={requests} onClose={() => setStudentCode(null)} /> : null;
+      })()}
     </div>
   );
 }

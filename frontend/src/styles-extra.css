@@ -133,3 +133,10 @@
 .strip > span i { font-style: normal; font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25); }
 .detail-request { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); }
 @media (max-width: 760px) { .detail-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Dòng sinh viên bấm được trong danh sách chi tiết */
+button.drill-row { width: 100%; border: 0; border-bottom: 1px solid var(--border); background: none; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+button.drill-row:last-child { border-bottom: 0; }
+button.drill-row:hover { background: var(--surface-2); }
+button.drill-row:hover .row-chevron { transform: translateX(2px); color: var(--accent); }
+button.drill-row:focus-visible { outline-offset: -2px; }
