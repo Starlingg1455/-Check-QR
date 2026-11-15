@@ -16,6 +16,7 @@ import {
   Minus,
   Moon,
   Paperclip,
+  Pencil,
   Plus,
   QrCode,
   Save,
@@ -36,7 +37,7 @@ import {
   useState,
 } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { taiAnhVeUrl } from './api.js';
+import { api, taiAnhVeUrl } from './api.js';
 import { useXacThuc, useGiaoDien, useCoChu } from './nguCanh.jsx';
 
 // ============ Thành phần giao diện cơ bản ============
@@ -727,11 +728,98 @@ export const dinhDangDungLuong = (soByte) =>
 
 // ============ Khung trang (thanh bên) ============
 
+/* ---------- Hộp thoại sửa thông tin cá nhân (mở từ thẻ tài khoản ở thanh bên) ----------
+   Giảng viên đổi được email + mật khẩu; sinh viên chỉ đổi được mật khẩu vì email
+   của sinh viên là khoá ghép với danh sách lớp (thêm/xoá SV theo email). */
+function HopThoaiSuaThongTin({ user, onClose }) {
+  const toast = useThongBao();
+  const { login } = useXacThuc();
+  const laGiangVien = user.role === 'teacher';
+  const [email, setEmail] = useState(user.email);
+  const [matKhau, setMatKhau] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const doiEmail =
+    laGiangVien && email.trim().toLowerCase() !== String(user.email).toLowerCase();
+  const coThayDoi = doiEmail || Boolean(matKhau);
+
+  async function luu(suKien) {
+    suKien.preventDefault();
+    setBusy(true);
+    try {
+      const phanHoi = await api('/account/auth/me', {
+        method: 'PUT',
+        body: {
+          email: doiEmail ? email.trim() : undefined,
+          password: matKhau || undefined,
+        },
+      });
+      // Máy chủ cấp token mới (token chứa email/role) — thay token + thông tin cũ
+      login(phanHoi.token, phanHoi.user);
+      toast.success('Đã cập nhật thông tin tài khoản');
+      onClose();
+    } catch (loi) {
+      toast.error(loi.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <HopThoai title="Thông tin tài khoản" onClose={onClose}>
+      <form className="stack" onSubmit={luu}>
+        <TruongNhap label="Vai trò">
+          <input className="input" value={laGiangVien ? 'Giảng viên' : 'Sinh viên'} disabled />
+        </TruongNhap>
+        <TruongNhap
+          label="Email"
+          hint={
+            laGiangVien
+              ? 'Đổi email thì lần sau đăng nhập bằng email mới.'
+              : 'Sinh viên không thể đổi email (email này gắn với danh sách lớp).'
+          }
+        >
+          <input
+            className="input"
+            type="email"
+            required
+            value={email}
+            disabled={!laGiangVien}
+            onChange={(suKien) => setEmail(suKien.target.value)}
+          />
+        </TruongNhap>
+        <TruongNhap label="Mật khẩu mới" hint="Để trống nếu giữ nguyên mật khẩu hiện tại.">
+          <input
+            className="input"
+            type="password"
+            value={matKhau}
+            minLength={4}
+            onChange={(suKien) => setMatKhau(suKien.target.value)}
+            placeholder="••••••••"
+          />
+        </TruongNhap>
+        <div className="row" style={{ justifyContent: 'flex-end' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Huỷ
+          </button>
+          <button className="btn btn-primary" disabled={busy || !coThayDoi}>
+            {busy && <VongXoayNut />}
+            <Save size={16} />
+            Lưu thay đổi
+          </button>
+        </div>
+      </form>
+    </HopThoai>
+  );
+}
+
 export function KhungTrang() {
   const { user, logout } = useXacThuc();
   const { theme, toggle } = useGiaoDien();
   const zoom = useCoChu();
   const isTeacher = user.role === 'teacher';
+  // Mở hộp thoại sửa thông tin cá nhân từ thẻ tài khoản ở thanh bên
+  const [suaThongTin, setSuaThongTin] = useState(false);
 
   // Đã vào được hệ thống thì xoá trang "đang chờ quay lại" đã lưu lúc bị chuyển sang đăng nhập
   useEffect(() => {
@@ -781,6 +869,14 @@ export function KhungTrang() {
               <div className="bold small truncate">{user.name}</div>
               <div className="xs muted truncate">{user.email}</div>
             </div>
+            <button
+              className="btn btn-ghost btn-icon btn-sm"
+              onClick={() => setSuaThongTin(true)}
+              aria-label="Sửa thông tin tài khoản"
+              title={isTeacher ? 'Sửa email / mật khẩu' : 'Đổi mật khẩu'}
+            >
+              <Pencil size={14} />
+            </button>
           </div>
           {zoom.enabled && (
             <div className="zoom-ctl" role="group" aria-label="Cỡ chữ">
@@ -836,6 +932,9 @@ export function KhungTrang() {
           <Outlet />
         </div>
       </main>
+      {suaThongTin && (
+        <HopThoaiSuaThongTin user={user} onClose={() => setSuaThongTin(false)} />
+      )}
     </div>
   );
 }

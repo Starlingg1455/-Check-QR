@@ -115,6 +115,7 @@ export const taiLieuApi = {
             properties: {
               email: { type: 'string' },
               name: { type: 'string' },
+              password: { type: 'string' },
               role: { type: 'string', enum: ['teacher', 'student'] },
             },
           }),
@@ -127,6 +128,34 @@ export const taiLieuApi = {
         },
       },
     },
+    '/auth/login': {
+      post: {
+        tags: ['Đăng nhập'],
+        summary: 'Đăng nhập bằng email + mật khẩu (mật khẩu mặc định là MSSV)',
+        description:
+          'Ở chế độ thử nghiệm (ALLOW_DEV_LOGIN): tài khoản chưa có mật khẩu sẽ nhận mật khẩu vừa nhập, tài khoản mới được tạo theo vai trò chọn.',
+        requestBody: {
+          required: true,
+          ...json({
+            type: 'object',
+            required: ['email', 'password'],
+            properties: {
+              email: { type: 'string' },
+              password: { type: 'string' },
+              role: { type: 'string', enum: ['teacher', 'student'] },
+            },
+          }),
+        },
+        responses: {
+          200: {
+            description: 'OK',
+            ...json({ $ref: '#/components/schemas/AuthResult' }),
+          },
+          401: { description: 'Sai email hoặc mật khẩu' },
+          429: { description: 'Nhập sai quá nhiều lần' },
+        },
+      },
+    },
     '/auth/me': {
       get: {
         tags: ['Đăng nhập'],
@@ -134,6 +163,31 @@ export const taiLieuApi = {
         security: bearer,
         responses: {
           200: { description: 'OK', ...json({ $ref: '#/components/schemas/User' }) },
+        },
+      },
+      put: {
+        tags: ['Đăng nhập'],
+        summary: 'Sửa thông tin của chính mình',
+        description:
+          'Giảng viên đổi được email + mật khẩu; sinh viên chỉ đổi được mật khẩu. Trả về token mới (token cũ chứa email/role).',
+        security: bearer,
+        requestBody: {
+          ...json({
+            type: 'object',
+            properties: {
+              email: { type: 'string', example: 'email-moi@truong.edu.vn' },
+              password: { type: 'string', example: 'mat-khau-moi' },
+            },
+          }),
+        },
+        responses: {
+          200: {
+            description: 'OK',
+            ...json({ $ref: '#/components/schemas/AuthResult' }),
+          },
+          400: { description: 'Không có gì thay đổi hoặc dữ liệu không hợp lệ' },
+          403: { description: 'Sinh viên không được đổi email' },
+          409: { description: 'Email đã được tài khoản khác dùng' },
         },
       },
     },
@@ -223,6 +277,51 @@ export const taiLieuApi = {
           }),
         },
         responses: { 201: { description: 'OK' } },
+      },
+    },
+    '/classes/{id}/students/bulk': {
+      post: {
+        tags: ['Sinh viên'],
+        summary: 'Thêm nhanh nhiều sinh viên, mỗi dòng "MSSV|Họ tên|Email" (giảng viên)',
+        description:
+          'Mật khẩu đăng nhập của sinh viên là chính MSSV của họ, được mã hoá scrypt trước khi lưu. Dòng sai định dạng không được lưu và được trả về kèm lý do.',
+        security: bearer,
+        parameters: [idParam],
+        requestBody: {
+          required: true,
+          ...json({
+            type: 'object',
+            required: ['text'],
+            properties: {
+              text: {
+                type: 'string',
+                example: '2355010001|Hoàng Thị Bình An|binhanhoang0512@gmail.com',
+              },
+            },
+          }),
+        },
+        responses: {
+          200: {
+            description: 'Số sinh viên đã lưu và danh sách dòng bị từ chối',
+            ...json({
+              type: 'object',
+              properties: {
+                imported: { type: 'integer' },
+                invalid: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      line: { type: 'integer' },
+                      text: { type: 'string' },
+                      reason: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            }),
+          },
+        },
       },
     },
     '/classes/{id}/students/{studentId}': {

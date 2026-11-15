@@ -1,7 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
-import { taoCoSoDuLieu, xuLyLoi } from './tienIch.js';
+import { taoCoSoDuLieu, xuLyLoi, maHoaMatKhau } from './tienIch.js';
 import { taoApi } from './api.js';
 import { taiLieuApi } from './taiLieuApi.js';
 
@@ -39,7 +39,30 @@ await db.exec(`
     UNIQUE (class_id, student_code)
   );
   CREATE INDEX IF NOT EXISTS idx_class_students_email ON account.class_students (lower(email));
+  ALTER TABLE account.users ADD COLUMN IF NOT EXISTS password_hash TEXT;
 `);
+
+// Mỗi email chỉ được dùng cho một MSSV trong một lớp, để hai tài khoản không ghi đè điểm danh của nhau.
+// Bọc try/catch: nếu dữ liệu cũ đã có trùng lặp thì bỏ qua, không làm service chết khi khởi động.
+try {
+  await db.exec(
+    'CREATE UNIQUE INDEX IF NOT EXISTS uq_class_students_email ON account.class_students (class_id, lower(email))',
+  );
+} catch (loi) {
+  console.warn('Không tạo được ràng buộc email duy nhất (dữ liệu cũ có trùng?):', loi.message);
+}
+
+// Tài khoản giảng viên đăng nhập bằng mật khẩu: gv@demo.vn / admin.
+// Chỉ gieo khi đang ở chế độ thử nghiệm (ALLOW_DEV_LOGIN khác 'false') — khi chạy thật
+// (đặt 'false') tài khoản này sẽ không có mật khẩu, giảng viên đăng nhập bằng Google.
+if (process.env.ALLOW_DEV_LOGIN !== 'false') {
+  const passwordHash = await maHoaMatKhau('admin');
+  await db.query(
+    `INSERT INTO account.users (email, name, role, password_hash) VALUES ('gv@demo.vn','Giảng viên Demo','teacher',$1)
+     ON CONFLICT (email) DO UPDATE SET role = 'teacher', password_hash = EXCLUDED.password_hash`,
+    [passwordHash],
+  );
+}
 
 const app = express();
 app.use(cors());

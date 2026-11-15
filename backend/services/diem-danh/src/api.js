@@ -440,6 +440,8 @@ export function taoApi(db) {
   });
 
   // ---------- Email cảnh báo vắng nhiều ----------
+  // Gửi cho TOÀN BỘ sinh viên ở mức cảnh báo, hoặc CHỈ MỘT người khi body có { email }.
+  // Nội dung email nêu rõ: số buổi vắng, số buổi đi muộn và bảng trạng thái từng buổi đã học.
   dinhTuyen.post(
     '/warnings/send',
     batBuocDangNhap,
@@ -453,6 +455,37 @@ export function taoApi(db) {
       const risk = await goiDichVu(DIA_CHI_THONG_KE, `/classes/${lop.id}/risk`, {
         token: req.token,
       });
+      const guiRieng = String(req.body?.email || '').trim().toLowerCase();
+      const nguoiNhan = guiRieng
+        ? risk.students.filter((sinhVien) => sinhVien.email.toLowerCase() === guiRieng)
+        : risk.students;
+      if (guiRieng && nguoiNhan.length === 0)
+        throw new LoiHttp(404, 'Sinh viên này hiện không ở mức cảnh báo');
+
+      // Buổi đã đóng + bản ghi điểm danh để lập bảng trạng thái từng buổi
+      const cacBuoi = (
+        await goiDichVu(DIA_CHI_BUOI_HOC, `/sessions?classId=${lop.id}`, {
+          token: req.token,
+        })
+      ).filter((buoi) => buoi.status === 'closed');
+      const banGhi = await db.query(
+        'SELECT session_id, student_email, status FROM attendance.records WHERE class_id=$1',
+        [lop.id],
+      );
+      const trangThaiCua = new Map(
+        banGhi.map(
+          (dong) => [`${dong.session_id}|${dong.student_email}`, dong.status],
+        ),
+      );
+      const NHAN_TRANG_THAI = {
+        present: 'Có mặt',
+        late: 'Đi trễ',
+        excused: 'Nghỉ có phép',
+        absent: 'Vắng không phép',
+      };
+      const dinhDangNgay = (giatri) =>
+        new Date(giatri).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+
       const labels = {
         warning: 'cần chú ý',
         danger: 'sắp bị cấm thi',
@@ -460,13 +493,31 @@ export function taoApi(db) {
       };
 
       const results = [];
-      for (const sinhVien of risk.students) {
+      for (const sinhVien of nguoiNhan) {
+        // Bảng trạng thái từng buổi + đếm số buổi muộn / nghỉ có phép của đúng người này
+        const cacDong = cacBuoi.map((buoi) => {
+          const trangThai =
+            trangThaiCua.get(`${buoi.id}|${sinhVien.email.toLowerCase()}`) || 'absent';
+          return { so: buoi.sessionNo, ngay: dinhDangNgay(buoi.openedAt), trangThai };
+        });
+        const diTre = cacDong.filter((dong) => dong.trangThai === 'late').length;
+        const nghiPhep = cacDong.filter((dong) => dong.trangThai === 'excused').length;
+        const bangBuoi = cacDong
+          .map(
+            (dong) =>
+              `<tr><td style="padding:4px 10px;border:1px solid #ddd">Buổi ${dong.so}</td>` +
+              `<td style="padding:4px 10px;border:1px solid #ddd">${dong.ngay}</td>` +
+              `<td style="padding:4px 10px;border:1px solid #ddd">${NHAN_TRANG_THAI[dong.trangThai]}</td></tr>`,
+          )
+          .join('');
+
         const subject = `[${lop.code}] Cảnh báo vắng học - ${labels[sinhVien.level]}`;
         const html = `
         <p>Chào ${sinhVien.fullName},</p>
         <p>Theo ghi nhận điểm danh môn <b>${lop.name}</b> (${lop.code}), bạn đã vắng không phép
         <b>${sinhVien.absent}</b> buổi / ${risk.closedSessions} buổi đã học. Giới hạn cho phép của lớp là <b>${risk.absentLimit}</b> buổi.</p>
-        <p>Tình trạng hiện tại: <b>${labels[sinhVien.level]}</b>.</p>
+        <p>Ngoài ra bạn đi trễ <b>${diTre}</b> buổi${nghiPhep ? `, nghỉ có phép ${nghiPhep} buổi` : ''}. Tình trạng hiện tại: <b>${labels[sinhVien.level]}</b>.</p>
+        ${cacDong.length ? `<p style="margin-bottom:4px"><b>Chi tiết từng buổi:</b></p><table style="border-collapse:collapse">${bangBuoi}</table>` : ''}
         <p>Nếu có lý do chính đáng, bạn hãy gửi đơn xin vắng trên hệ thống hoặc liên hệ giảng viên.</p>
         <p>Trân trọng,<br/>${lop.teacher_name}</p>`;
         const mail = await guiMail({ to: sinhVien.email, subject, html });

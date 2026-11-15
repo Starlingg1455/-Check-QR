@@ -43,24 +43,32 @@ export function TrangDangNhap() {
     [],
   );
   const [role, setRole] = useState('teacher');
-  const [email, setEmail] = useState('gv@demo.vn');
-  const [name, setName] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   const chonVaiTro = (vaiTro) => {
     setRole(vaiTro);
-    setEmail(vaiTro === 'teacher' ? 'gv@demo.vn' : 'sv01@demo.vn');
+    // Chỉ điền sẵn email demo nếu ô email đang trống hoặc đang là email demo
+    setLoginEmail((truoc) =>
+      !truoc || /^(gv|sv\d+)@demo\.vn$/i.test(truoc)
+        ? vaiTro === 'teacher'
+          ? 'gv@demo.vn'
+          : 'sv01@demo.vn'
+        : truoc,
+    );
   };
 
-  async function dangNhapThuNghiem(suKien) {
+  // Đăng nhập bằng email + mật khẩu — dùng cho cả giảng viên và sinh viên
+  async function dangNhapMatKhau(suKien) {
     suKien.preventDefault();
     setBusy(true);
     setError('');
     try {
-      const phanHoi = await api('/account/auth/dev-login', {
+      const phanHoi = await api('/account/auth/login', {
         method: 'POST',
-        body: { email, name: name || undefined, role },
+        body: { email: loginEmail, password: loginPassword, role },
       });
       login(phanHoi.token, phanHoi.user);
     } catch (loi) {
@@ -154,67 +162,61 @@ export function TrangDangNhap() {
             </GoogleOAuthProvider>
           )}
 
-          {config?.googleClientId && config?.devLogin && (
-            <div className="divider">hoặc</div>
+          {config?.googleClientId && (
+            <div className="divider">hoặc đăng nhập bằng mật khẩu</div>
           )}
 
-          {config?.devLogin && (
-            <form className="stack" onSubmit={dangNhapThuNghiem}>
-              <div className="segmented" role="tablist" style={{ alignSelf: 'stretch' }}>
-                <button
-                  type="button"
-                  className={role === 'teacher' ? 'on' : ''}
-                  style={{ flex: 1, justifyContent: 'center' }}
-                  onClick={() => chonVaiTro('teacher')}
-                >
-                  <Presentation size={16} />
-                  Giảng viên
-                </button>
-                <button
-                  type="button"
-                  className={role === 'student' ? 'on' : ''}
-                  style={{ flex: 1, justifyContent: 'center' }}
-                  onClick={() => chonVaiTro('student')}
-                >
-                  <GraduationCap size={16} />
-                  Sinh viên
-                </button>
-              </div>
-              <TruongNhap label="Email">
-                <input
-                  className="input"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(suKien) => setEmail(suKien.target.value)}
-                  placeholder="ten@truong.edu.vn"
-                />
-              </TruongNhap>
-              <TruongNhap label="Họ tên (không bắt buộc)">
-                <input
-                  className="input"
-                  value={name}
-                  onChange={(suKien) => setName(suKien.target.value)}
-                  placeholder="Nguyễn Văn A"
-                />
-              </TruongNhap>
-              <button className="btn btn-primary btn-lg btn-block" disabled={busy}>
-                {busy ? (
-                  <VongXoay />
-                ) : (
-                  <>
-                    Vào hệ thống <ArrowRight size={18} />
-                  </>
-                )}
+          <form className="stack" onSubmit={dangNhapMatKhau}>
+            <div className="segmented" role="tablist" style={{ alignSelf: 'stretch' }}>
+              <button
+                type="button"
+                className={role === 'teacher' ? 'on' : ''}
+                style={{ flex: 1, justifyContent: 'center' }}
+                onClick={() => chonVaiTro('teacher')}
+              >
+                <Presentation size={16} />
+                Giảng viên
               </button>
-              <div className="alert" style={{ alignItems: 'flex-start' }}>
-                <span className="small">
-                  Đây là chế độ đăng nhập thử nghiệm. Tài khoản demo: <b>gv@demo.vn</b>{' '}
-                  hoặc <b>sv01@demo.vn</b> … <b>sv30@demo.vn</b>.
-                </span>
-              </div>
-            </form>
-          )}
+              <button
+                type="button"
+                className={role === 'student' ? 'on' : ''}
+                style={{ flex: 1, justifyContent: 'center' }}
+                onClick={() => chonVaiTro('student')}
+              >
+                <GraduationCap size={16} />
+                Sinh viên
+              </button>
+            </div>
+            <TruongNhap label="Email">
+              <input
+                className="input"
+                type="email"
+                required
+                value={loginEmail}
+                onChange={(suKien) => setLoginEmail(suKien.target.value)}
+                placeholder="email bạn dùng khi được nhập vào lớp"
+              />
+            </TruongNhap>
+            <TruongNhap label="Mật khẩu">
+              <input
+                className="input"
+                type="password"
+                required
+                value={loginPassword}
+                onChange={(suKien) => setLoginPassword(suKien.target.value)}
+                placeholder="••••••••"
+              />
+            </TruongNhap>
+            <button className="btn btn-primary btn-lg btn-block" disabled={busy}>
+              {busy ? (
+                <VongXoay />
+              ) : (
+                <>
+                  Đăng nhập <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </form>
 
           {config && !config.googleClientId && !config.devLogin && (
             <KhungLoi message="Hệ thống chưa cấu hình đăng nhập." />

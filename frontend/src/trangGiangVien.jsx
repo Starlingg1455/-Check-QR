@@ -13,6 +13,7 @@ import {
   Download,
   Eye,
   FileText,
+  Mail,
   MailCheck,
   MapPin,
   Paperclip,
@@ -38,6 +39,7 @@ import {
   AnhCoXacThuc,
   AnhDaiDien,
   NhanTrangThai,
+  NhanTrangThaiDiemDanh,
   VongXoayNut,
   The,
   TrangRong,
@@ -49,6 +51,7 @@ import {
   DauTrang,
   VongTiLe,
   OSoLieu,
+  dinhDangNgay,
   dinhDangNgayGio,
   phanTram,
   useTaiDuLieu,
@@ -905,11 +908,134 @@ export function TabBuoiHoc({ cls, sessions, stats, onChanged }) {
 
 // ============ Tab Sinh viên ============
 
+/* Thêm nhanh cả lớp: dán danh sách, mỗi dòng "MSSV|Họ tên|Email".
+   Hộp thoại kiểm tra định dạng ngay khi gõ (tô ra dòng nào sai, sai vì sao);
+   bấm "Đồng ý" mới lưu toàn bộ xuống database. Mật khẩu đăng nhập của sinh viên
+   là chính MSSV của họ (máy chủ mã hoá scrypt trước khi lưu, không lưu chữ gốc). */
+function HopThoaiThemNhanh({ cls, onClose, onSaved }) {
+  const toast = useThongBao();
+  const [vanBan, datVanBan] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [loiServer, datLoiServer] = useState([]); // dòng bị máy chủ từ chối (vd email trùng MSSV khác)
+
+  const { hopLe, loi } = useMemo(() => {
+    const hopLe = [];
+    const loi = [];
+    const emailDaDung = new Set();
+    vanBan.split(/\r?\n/).forEach((dong, chiSo) => {
+      const banGoc = dong.trim();
+      if (!banGoc) return; // bỏ qua dòng trống
+      const boiLoi = (reason) => loi.push({ line: chiSo + 1, text: banGoc, reason });
+      const cacPhan = banGoc.split('|').map((phan) => phan.trim());
+      if (cacPhan.length !== 3)
+        return boiLoi('Cần đúng định dạng "MSSV|Họ tên|Email"');
+      const [studentCode, fullName, email] = cacPhan;
+      if (!studentCode) return boiLoi('Thiếu MSSV');
+      if (!fullName) return boiLoi('Thiếu họ tên');
+      if (!/^\S+@\S+\.\S+$/.test(email)) return boiLoi('Email không hợp lệ');
+      const emailThuong = email.toLowerCase();
+      if (emailDaDung.has(emailThuong))
+        return boiLoi('Email bị trùng với dòng phía trên');
+      emailDaDung.add(emailThuong);
+      hopLe.push({ line: chiSo + 1, studentCode, fullName, emailThuong });
+    });
+    return { hopLe, loi };
+  }, [vanBan]);
+
+  const loiHienThi = loiServer.length > 0 ? loiServer : loi;
+
+  async function luu() {
+    setBusy(true);
+    try {
+      const text = hopLe
+        .map((dong) => `${dong.studentCode}|${dong.fullName}|${dong.emailThuong}`)
+        .join('\n');
+      const ketQua = await api(`/account/classes/${cls.id}/students/bulk`, {
+        method: 'POST',
+        body: { text },
+      });
+      if (ketQua.imported > 0) {
+        toast.success(`Đã lưu ${ketQua.imported} sinh viên vào lớp`);
+        onSaved();
+      }
+      datLoiServer(ketQua.invalid || []);
+      if (!(ketQua.invalid || []).length) onClose();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <HopThoai
+      title={`Thêm nhanh sinh viên — ${cls.code}`}
+      onClose={onClose}
+      wide={720}
+      footer={
+        <>
+          <button className="btn btn-secondary" onClick={onClose} disabled={busy}>
+            Huỷ
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={luu}
+            disabled={busy || hopLe.length === 0}
+          >
+            {busy && <VongXoayNut />}
+            Đồng ý — lưu {hopLe.length} sinh viên
+          </button>
+        </>
+      }
+    >
+      <div className="stack">
+        <p className="text-2">
+          Mỗi dòng một sinh viên, dạng <b>MSSV|Họ tên|Email</b>. Email là tài khoản
+          đăng nhập, mật khẩu là chính MSSV của sinh viên đó.
+        </p>
+        <textarea
+          className="input"
+          rows={10}
+          style={{ fontFamily: 'monospace', fontSize: 13, resize: 'vertical' }}
+          value={vanBan}
+          onChange={(suKien) => {
+            datVanBan(suKien.target.value);
+            datLoiServer([]);
+          }}
+          placeholder={
+            '2355010001|Hoàng Thị Bình An|binhanhoang0512@gmail.com\n2355010012|Nguyễn Trần Tuấn Anh|tuananh300605@gmail.com'
+          }
+          autoFocus
+        />
+        <div className="row wrap small" style={{ gap: 14 }}>
+          <span style={{ color: 'var(--good)' }}>✓ {hopLe.length} dòng hợp lệ</span>
+          {loiHienThi.length > 0 && (
+            <span style={{ color: 'var(--critical)' }}>
+              ✗ {loiHienThi.length} dòng cần sửa
+            </span>
+          )}
+        </div>
+        {loiHienThi.length > 0 && (
+          <div className="stack" style={{ maxHeight: 180, overflowY: 'auto', gap: 4 }}>
+            {loiHienThi.map((dong, chiSo) => (
+              <div className="small" key={`${dong.line}-${chiSo}`}>
+                <b>Dòng {dong.line}:</b> <span className="muted num">{dong.text}</span>{' '}
+                — {dong.reason}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </HopThoai>
+  );
+}
+
 /* Tab Sinh viên: một bảng duy nhất vừa quản lý danh sách vừa xem tình hình đi học */
 export function TabSinhVien({ cls, stats, requests, onChanged }) {
   const toast = useThongBao();
   const list = useTaiDuLieu(() => api(`/account/classes/${cls.id}/students`), [cls.id]);
   const [adding, setAdding] = useState(false);
+  const [themNhanh, setThemNhanh] = useState(false);
   const [form, setForm] = useState({ studentCode: '', fullName: '', email: '' });
   const [tuKhoa, datTuKhoa] = useState('');
   const [sort, setSort] = useState({ key: 'student_code', dir: 1 });
@@ -1008,6 +1134,10 @@ export function TabSinhVien({ cls, stats, requests, onChanged }) {
             />
           </div>
           <div className="grow" />
+          <button className="btn btn-secondary" onClick={() => setThemNhanh(true)}>
+            <Users size={16} />
+            Thêm nhanh
+          </button>
           <button className="btn btn-primary" onClick={() => setAdding(true)}>
             <UserPlus size={16} />
             Thêm
@@ -1016,8 +1146,9 @@ export function TabSinhVien({ cls, stats, requests, onChanged }) {
 
         {list.data.length === 0 ? (
           <TrangRong icon={Users} title="Chưa có sinh viên">
-            Bấm "Thêm" để nhập từng sinh viên (MSSV, họ tên, email). Sinh viên đăng nhập
-            bằng đúng email này sẽ thấy lớp.
+            Bấm "Thêm nhanh" để dán cả danh sách lớp một lượt (dòng dạng
+            MSSV|Họ tên|Email), hoặc "Thêm" để nhập từng sinh viên. Sinh viên đăng
+            nhập bằng email này với mật khẩu là MSSV của họ.
           </TrangRong>
         ) : (
           <div className="table-wrap">
@@ -1107,6 +1238,13 @@ export function TabSinhVien({ cls, stats, requests, onChanged }) {
           onClose={() => setDetail(null)}
         />
       )}
+      {themNhanh && (
+        <HopThoaiThemNhanh
+          cls={cls}
+          onClose={() => setThemNhanh(false)}
+          onSaved={changed}
+        />
+      )}
       {adding && (
         <HopThoai title="Thêm sinh viên" onClose={() => setAdding(false)}>
           <form className="stack" onSubmit={themMotSinhVien}>
@@ -1127,7 +1265,10 @@ export function TabSinhVien({ cls, stats, requests, onChanged }) {
                 onChange={(suKien) => setForm({ ...form, fullName: suKien.target.value })}
               />
             </TruongNhap>
-            <TruongNhap label="Email (dùng để đăng nhập)">
+            <TruongNhap
+              label="Email (dùng để đăng nhập)"
+              hint="Mật khẩu đăng nhập của sinh viên là chính MSSV của họ."
+            >
               <input
                 className="input"
                 type="email"
@@ -1185,11 +1326,145 @@ const TRANG_THAI_MAIL = {
   failed: ['critical', 'Gửi lỗi'],
 };
 
+/* ---------- Hộp thoại soạn & gửi email riêng cho MỘT sinh viên ----------
+   Hiện trước nội dung email: bảng trạng thái từng buổi đã học, số buổi đi muộn,
+   số buổi vắng so với giới hạn — rồi bấm gửi (hoặc ghi log nếu chưa cấu hình SMTP). */
+function HopThoaiGuiRieng({ cls, sinhVien, thongKe, onClose, onSent }) {
+  const toast = useThongBao();
+  const [busy, setBusy] = useState(false);
+  const buoi = useTaiDuLieu(() => api(`/sessions/sessions?classId=${cls.id}`), [cls.id]);
+  const banGhi = useTaiDuLieu(
+    () => api(`/attendance/classes/${cls.id}/records`),
+    [cls.id],
+  );
+
+  const soLieu = thongKe.perStudent.find(
+    (sv) => sv.email.toLowerCase() === sinhVien.email.toLowerCase(),
+  );
+  const daDong = (buoi.data || []).filter((x) => x.status === 'closed');
+  const ghiCuaSinhVien = new Map(
+    (banGhi.data || [])
+      .filter((r) => r.studentEmail.toLowerCase() === sinhVien.email.toLowerCase())
+      .map((r) => [r.sessionId, r.status]),
+  );
+  const cacDong = daDong.map((x) => ({
+    so: x.sessionNo,
+    ngay: dinhDangNgay(x.openedAt),
+    trangThai: ghiCuaSinhVien.get(x.id) || 'absent',
+  }));
+  // Nhãn mức cảnh báo phải GIỐNG HỆT backend để tiêu đề xem trước trùng với email thật
+  const NHAN_MUC = {
+    warning: 'cần chú ý',
+    danger: 'sắp bị cấm thi',
+    banned: 'đã vượt giới hạn vắng (có thể bị cấm thi)',
+  };
+  const tieuDe = `[${cls.code}] Cảnh báo vắng học - ${NHAN_MUC[sinhVien.level]}`;
+
+  async function gui() {
+    setBusy(true);
+    try {
+      const ketQua = await api('/attendance/warnings/send', {
+        method: 'POST',
+        body: { classId: cls.id, email: sinhVien.email },
+      });
+      toast.success(
+        ketQua.mailConfigured
+          ? `Đã gửi email cho ${sinhVien.fullName}`
+          : `Đã ghi nhận cảnh báo cho ${sinhVien.fullName} (chưa cấu hình SMTP)`,
+      );
+      onSent();
+      onClose();
+    } catch (loi) {
+      toast.error(loi.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <HopThoai title={`Gửi email riêng — ${sinhVien.fullName}`} onClose={onClose}>
+      {buoi.loading || banGhi.loading ? (
+        <DangTai />
+      ) : (
+        <div className="stack">
+          <div className="detail-stats four">
+            <div>
+              <b className="num">
+                {soLieu?.absent ?? sinhVien.absent}/{thongKe.absentLimit}
+              </b>
+              <span>Vắng không phép</span>
+            </div>
+            <div>
+              <b className="num">{soLieu?.late ?? 0}</b>
+              <span>Đi trễ</span>
+            </div>
+            <div>
+              <b className="num">{soLieu?.excused ?? 0}</b>
+              <span>Có phép</span>
+            </div>
+            <div>
+              <b className="num">{phanTram(soLieu?.rate)}</b>
+              <span>Tỉ lệ đi học</span>
+            </div>
+          </div>
+
+          {cacDong.length === 0 ? (
+            <div className="alert">
+              <span className="small">Lớp chưa có buổi nào đã đóng.</span>
+            </div>
+          ) : (
+            <div className="table-wrap" style={{ maxHeight: 260 }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Buổi</th>
+                    <th>Ngày</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cacDong.map((dong) => (
+                    <tr key={dong.so}>
+                      <td className="num">Buổi {dong.so}</td>
+                      <td className="num">{dong.ngay}</td>
+                      <td>
+                        <NhanTrangThaiDiemDanh status={dong.trangThai} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <TruongNhap label="Người nhận" hint="Email này sẽ gửi đúng một sinh viên.">
+            <input className="input" value={sinhVien.email} disabled />
+          </TruongNhap>
+          <TruongNhap label="Tiêu đề" hint="Nội dung email gồm tóm tắt + bảng chi tiết như trên.">
+            <input className="input" value={tieuDe} disabled />
+          </TruongNhap>
+
+          <div className="row" style={{ justifyContent: 'flex-end' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Huỷ
+            </button>
+            <button className="btn btn-primary" onClick={gui} disabled={busy}>
+              {busy ? <VongXoayNut /> : <Send size={16} />}
+              Gửi email
+            </button>
+          </div>
+        </div>
+      )}
+    </HopThoai>
+  );
+}
+
 /* Tab Cảnh báo: ai sắp bị cấm thi, gửi email nhắc, lịch sử email */
 export function TabCanhBao({ cls, stats, requests, onChanged }) {
   const toast = useThongBao();
   const [busy, setBusy] = useState(false);
   const [detail, setDetail] = useState(null); // sinh viên đang xem chi tiết
+  const [guiRieng, setGuiRieng] = useState(null); // sinh viên đang soạn email riêng
   const [absenceCount, setAbsenceCount] = useState(null); // cột biểu đồ phân bố đang xem
   const history = useTaiDuLieu(
     () => api(`/attendance/notifications?classId=${cls.id}`),
@@ -1273,7 +1548,29 @@ export function TabCanhBao({ cls, stats, requests, onChanged }) {
                       <NhanMucCanhBao level={sinhVien.level} />
                     </td>
                     <td className="right">
-                      <ChevronRight size={18} className="muted row-chevron" />
+                      <div
+                        className="row"
+                        style={{ gap: 2, justifyContent: 'flex-end', alignItems: 'center' }}
+                      >
+                        <button
+                          className="btn btn-ghost btn-icon btn-sm"
+                          aria-label={`Xem chi tiết ${sinhVien.fullName}`}
+                          title="Xem chi tiết"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-icon btn-sm"
+                          onClick={(suKien) => {
+                            suKien.stopPropagation(); // không mở chi tiết khi bấm nút gửi
+                            setGuiRieng(sinhVien);
+                          }}
+                          aria-label={`Gửi email riêng cho ${sinhVien.fullName}`}
+                          title="Gửi email riêng cho người này"
+                        >
+                          <Mail size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1306,6 +1603,15 @@ export function TabCanhBao({ cls, stats, requests, onChanged }) {
             )
           }
           onClose={() => setAbsenceCount(null)}
+        />
+      )}
+      {guiRieng && (
+        <HopThoaiGuiRieng
+          cls={cls}
+          sinhVien={guiRieng}
+          thongKe={thongKe}
+          onClose={() => setGuiRieng(null)}
+          onSent={history.refresh}
         />
       )}
       {detail && (

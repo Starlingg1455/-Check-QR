@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import pg from 'pg';
+import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 
 // ============ Lỗi HTTP và gọi sang dịch vụ khác (REST) ============
 
@@ -91,6 +92,35 @@ export async function taoCoSoDuLieu(schema) {
     // Chạy nhiều câu lệnh SQL liền nhau (dùng khi tạo bảng)
     exec: (text) => runExec(text),
   };
+}
+
+// ============ Mật khẩu (mã hoá bằng scrypt + muối) ============
+
+// Mã hoá mật khẩu thành "scrypt:<muối>:<khóa>": KHÔNG lưu mật khẩu gốc, mỗi lần mã hoá
+// sinh một muối ngẫu nhiên nên hai người trùng mật khẩu vẫn cho ra hai chuỗi khác nhau.
+// scrypt là hàm băm chậm chuyên dùng cho mật khẩu, có sẵn trong Node (node:crypto).
+export async function maHoaMatKhau(matKhau) {
+  const muoi = randomBytes(16).toString('hex');
+  const khoa = await new Promise((giaiQuyet, tuChoi) =>
+    scrypt(String(matKhau), muoi, 64, (loi, banPhai) =>
+      loi ? tuChoi(loi) : giaiQuyet(banPhai),
+    ),
+  );
+  return `scrypt:${muoi}:${khoa.toString('hex')}`;
+}
+
+// So khớp mật khẩu người dùng vừa nhập với bản đã mã hoá trong database
+export async function kiemTraMatKhau(matKhau, banGhiDaMaHoa) {
+  if (!banGhiDaMaHoa) return false;
+  const [kieu, muoi, banPhaiHex] = String(banGhiDaMaHoa).split(':');
+  if (kieu !== 'scrypt' || !muoi || !banPhaiHex) return false;
+  const khoa = await new Promise((giaiQuyet, tuChoi) =>
+    scrypt(String(matKhau), muoi, 64, (loi, banPhai) =>
+      loi ? tuChoi(loi) : giaiQuyet(banPhai),
+    ),
+  );
+  const banLuu = Buffer.from(banPhaiHex, 'hex');
+  return banLuu.length === khoa.length && timingSafeEqual(banLuu, khoa);
 }
 
 // ============ Xác thực bằng JWT ============

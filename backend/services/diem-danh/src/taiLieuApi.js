@@ -227,15 +227,27 @@ export const taiLieuApi = {
     '/warnings/send': {
       post: {
         tags: ['Thông báo'],
-        summary: 'Gửi email cảnh báo cho sinh viên vắng nhiều',
+        summary: 'Gửi email cảnh báo (hàng loạt hoặc một cá nhân)',
         security: bearer,
         description:
-          'Gọi service thống kê để lấy danh sách có nguy cơ, rồi gửi email (hoặc ghi log nếu chưa cấu hình SMTP).',
+          'Gọi service thống kê để lấy danh sách có nguy cơ, rồi gửi email (hoặc ghi log nếu chưa cấu hình SMTP). Email gồm bảng trạng thái từng buổi đã học và số buổi đi muộn. Nếu body có "email" thì CHỈ gửi cho đúng người đó.',
         requestBody: {
           required: true,
-          ...json({ type: 'object', properties: { classId: { type: 'integer' } } }),
+          ...json({
+            type: 'object',
+            properties: {
+              classId: { type: 'integer' },
+              email: {
+                type: 'string',
+                description: 'Bỏ trống = gửi cho tất cả; điền vào = gửi riêng một sinh viên',
+              },
+            },
+          }),
         },
-        responses: { 200: { description: 'Kết quả gửi' } },
+        responses: {
+          200: { description: 'Kết quả gửi' },
+          404: { description: 'Sinh viên không thuộc mức cảnh báo' },
+        },
       },
     },
     '/notifications': {
