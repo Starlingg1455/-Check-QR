@@ -317,7 +317,11 @@ export function TrangBuoiDiemDanh() {
           </Link>
         }
         title={session.title}
-        subtitle={`Mở lúc ${dinhDangNgayGio(session.openedAt)}${session.closedAt ? ` · đóng lúc ${dinhDangGio(session.closedAt)}` : ''}`}
+        subtitle={
+          session.openedAt
+            ? `Mở lúc ${dinhDangNgayGio(session.openedAt)}${session.closedAt ? ` · đóng lúc ${dinhDangGio(session.closedAt)}` : ''}`
+            : 'Chưa mở điểm danh'
+        }
         actions={
           isOpen ? (
             <button className="btn btn-danger" onClick={() => setClosing(true)}>

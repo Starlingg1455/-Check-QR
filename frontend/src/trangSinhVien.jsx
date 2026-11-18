@@ -231,7 +231,8 @@ function HopThoaiXinVang({ classId, session, onClose, onSent }) {
     <HopThoai title={`Xin vắng buổi ${session.sessionNo}`} onClose={onClose}>
       <form className="stack" onSubmit={submit}>
         <p className="small text-2">
-          {session.title} · {dinhDangNgayGio(session.openedAt)}
+          {session.title} ·{' '}
+          {session.openedAt ? dinhDangNgayGio(session.openedAt) : 'Chưa diễn ra'}
         </p>
         <TruongNhap label="Lý do">
           <textarea
@@ -385,8 +386,10 @@ export function TrangLopCuaSinhVien() {
       </section>
 
       <div className="section-title">
-        <h2>Lịch sử điểm danh</h2>
-        <p>{summary.sessions} buổi đã học</p>
+        <h2>Các buổi học</h2>
+        <p>
+          {summary.sessions}/{lop.totalSessions} buổi đã học
+        </p>
       </div>
       <The pad={false}>
         {history.length === 0 ? (
@@ -402,7 +405,11 @@ export function TrangLopCuaSinhVien() {
                 <div className="timeline-no">{banGhi.sessionNo}</div>
                 <div className="grow">
                   <div className="bold">{banGhi.title}</div>
-                  <div className="small muted">{dinhDangNgayGio(banGhi.openedAt)}</div>
+                  <div className="small muted">
+                    {banGhi.openedAt
+                      ? dinhDangNgayGio(banGhi.openedAt)
+                      : 'Chưa diễn ra'}
+                  </div>
                   {banGhi.request && (
                     <div className="row wrap" style={{ gap: 6, marginTop: 8 }}>
                       <NhanTrangThai tone={TRANG_THAI_DON[banGhi.request.status][0]}>
@@ -420,7 +427,7 @@ export function TrangLopCuaSinhVien() {
                 </div>
                 <div className="row" style={{ gap: 8 }}>
                   <NhanTrangThaiDiemDanh status={banGhi.attendance} />
-                  {banGhi.attendance === 'absent' && !banGhi.request && (
+                  {['absent', 'planned'].includes(banGhi.attendance) && !banGhi.request && (
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => setTarget(banGhi)}

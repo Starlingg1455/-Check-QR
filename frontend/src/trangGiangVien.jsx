@@ -24,12 +24,14 @@ import {
   Plus,
   QrCode,
   Radio,
+  Save,
   Search,
   Send,
   ShieldAlert,
   Trash2,
   UserPlus,
   Users,
+  X,
 } from './bieuTuong.jsx';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -713,33 +715,62 @@ export function TabTongQuan({
 export function TabBuoiHoc({ cls, sessions, stats, onChanged }) {
   const chuyenTrang = useNavigate();
   const toast = useThongBao();
-  const [opening, setOpening] = useState(false);
-  const [title, setTitle] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [dangMo, setDangMo] = useState(null); // id buổi đang được mở (hoặc 'tiep')
+  const [suaId, setSuaId] = useState(null); // buổi đang sửa tên
+  const [tieuDe, setTieuDe] = useState('');
+  const [dangLuu, setDangLuu] = useState(false);
   const [toDelete, setToDelete] = useState(null);
 
   if (sessions.loading) return <DangTai />;
   if (sessions.error)
     return <KhungLoi message={sessions.error} onRetry={sessions.reload} />;
 
-  const list = [...sessions.data].reverse();
+  // Backend đã tạo sẵn đủ số buổi và sắp theo số thứ tự tăng dần
+  const list = sessions.data;
   const openOne = list.find((buoi) => buoi.status === 'open');
+  const tiepTheo = list.find((buoi) => buoi.status === 'planned');
   const tiLeCuaBuoi = (maBuoi) => stats?.perSession.find((buoi) => buoi.sessionId === maBuoi);
 
-  async function moBuoiDiemDanh(suKien) {
-    suKien.preventDefault();
-    setBusy(true);
+  async function moBuoi(buoi) {
+    setDangMo(buoi ? buoi.id : 'tiep');
     try {
-      const buoiMoi = await api('/sessions/sessions', {
-        method: 'POST',
-        body: { classId: cls.id, title },
-      });
-      toast.success(`Đã mở buổi ${buoiMoi.sessionNo}`);
-      chuyenTrang(`/classes/${cls.id}/sessions/${buoiMoi.id}`);
+      const daMo = buoi
+        ? await api(`/sessions/sessions/${buoi.id}/open`, { method: 'POST' })
+        : await api('/sessions/sessions', { method: 'POST', body: { classId: cls.id } });
+      toast.success(`Đã mở buổi ${daMo.sessionNo}`);
+      chuyenTrang(`/classes/${cls.id}/sessions/${daMo.id}`);
     } catch (loi) {
       toast.error(loi.message);
     } finally {
-      setBusy(false);
+      setDangMo(null);
+    }
+  }
+
+  function batDauSua(buoi) {
+    setSuaId(buoi.id);
+    setTieuDe(buoi.title);
+  }
+  function huySua() {
+    setSuaId(null);
+    setTieuDe('');
+  }
+  async function luuTieuDe(buoi) {
+    const ten = tieuDe.trim();
+    if (!ten) {
+      toast.error('Tên buổi không được để trống');
+      return;
+    }
+    setDangLuu(true);
+    try {
+      await api(`/sessions/sessions/${buoi.id}`, { method: 'PUT', body: { title: ten } });
+      toast.success('Đã lưu tên buổi');
+      setSuaId(null);
+      setTieuDe('');
+      onChanged();
+    } catch (loi) {
+      toast.error(loi.message);
+    } finally {
+      setDangLuu(false);
     }
   }
   async function remove() {
@@ -778,10 +809,18 @@ export function TabBuoiHoc({ cls, sessions, stats, onChanged }) {
         </div>
       ) : (
         <div className="row between wrap">
-          <p className="text-2">Mỗi lần dạy, hãy mở một buổi điểm danh mới.</p>
-          <button className="btn btn-primary" onClick={() => setOpening(true)}>
-            <Play size={16} />
-            Mở buổi điểm danh
+          <p className="text-2">
+            {tiepTheo
+              ? `Lớp có ${list.length} buổi. ${tiepTheo.title} là buổi kế tiếp — bấm để mở điểm danh.`
+              : 'Lớp đã dạy hết số buổi dự kiến. Mở thêm buổi mới nếu cần.'}
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={() => moBuoi(tiepTheo || null)}
+            disabled={Boolean(dangMo)}
+          >
+            {dangMo ? <VongXoayNut /> : <Play size={16} />}
+            {tiepTheo ? `Mở buổi ${tiepTheo.sessionNo}` : 'Mở buổi mới'}
           </button>
         </div>
       )}
@@ -789,57 +828,118 @@ export function TabBuoiHoc({ cls, sessions, stats, onChanged }) {
       <The pad={false} title={`Các buổi học (${list.length})`}>
         {list.length === 0 ? (
           <TrangRong icon={CalendarDays} title="Chưa có buổi học nào">
-            Bấm "Mở buổi điểm danh" để bắt đầu buổi đầu tiên.
+            Kiểm tra "Tổng số buổi" trong phần sửa lớp để tạo buổi học.
           </TrangRong>
         ) : (
           <div className="list">
             {list.map((buoi) => {
               const tiLe = tiLeCuaBuoi(buoi.id);
+              const dangSua = suaId === buoi.id;
               return (
                 <div className="list-item" key={buoi.id}>
                   <div className="timeline-no">{buoi.sessionNo}</div>
-                  <div className="grow">
-                    <div className="bold">{buoi.title}</div>
-                    <div className="small muted">{dinhDangNgayGio(buoi.openedAt)}</div>
-                  </div>
-                  {buoi.status === 'open' ? (
-                    <NhanTrangThai tone="live">
-                      <span className="dot pulse" />
-                      Đang mở
-                    </NhanTrangThai>
-                  ) : (
-                    tiLe && (
-                      <span
-                        className="hide-sm"
-                        title={`${tiLe.present + tiLe.late}/${tiLe.present + tiLe.late + tiLe.excused + tiLe.absent} sinh viên có mặt`}
+                  {dangSua ? (
+                    <>
+                      <input
+                        className="input grow"
+                        autoFocus
+                        maxLength={200}
+                        value={tieuDe}
+                        onChange={(suKien) => setTieuDe(suKien.target.value)}
+                        onKeyDown={(suKien) => {
+                          if (suKien.key === 'Enter') luuTieuDe(buoi);
+                          if (suKien.key === 'Escape') huySua();
+                        }}
+                        aria-label="Tên buổi"
+                      />
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => luuTieuDe(buoi)}
+                        disabled={dangLuu}
                       >
-                        <VongTiLe value={tiLe.rate} size={44} stroke={5} />
-                      </span>
-                    )
+                        {dangLuu ? <VongXoayNut /> : <Save size={15} />}
+                        <span className="hide-sm">Lưu</span>
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={huySua}
+                        aria-label="Huỷ sửa tên buổi"
+                      >
+                        <X size={15} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="grow">
+                        <div className="bold">{buoi.title}</div>
+                        {buoi.status !== 'planned' && (
+                          <div className="small muted">
+                            Mở lúc {dinhDangNgayGio(buoi.openedAt)}
+                          </div>
+                        )}
+                      </div>
+                      {buoi.status === 'open' ? (
+                        <NhanTrangThai tone="live">
+                          <span className="dot pulse" />
+                          Đang mở
+                        </NhanTrangThai>
+                      ) : buoi.status === 'planned' ? (
+                        <NhanTrangThai>Chưa diễn ra</NhanTrangThai>
+                      ) : (
+                        tiLe && (
+                          <span
+                            className="hide-sm"
+                            title={`${tiLe.present + tiLe.late}/${tiLe.present + tiLe.late + tiLe.excused + tiLe.absent} sinh viên có mặt`}
+                          >
+                            <VongTiLe value={tiLe.rate} size={44} stroke={5} />
+                          </span>
+                        )
+                      )}
+                      {buoi.status === 'planned' ? (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => moBuoi(buoi)}
+                          disabled={Boolean(dangMo) || Boolean(openOne)}
+                          title={openOne ? 'Hãy đóng buổi đang mở trước' : undefined}
+                        >
+                          <Play size={15} />
+                          <span className="hide-sm">Mở điểm danh</span>
+                        </button>
+                      ) : (
+                        <Link
+                          className="btn btn-secondary btn-sm"
+                          to={`/classes/${cls.id}/sessions/${buoi.id}`}
+                        >
+                          {buoi.status === 'open' ? (
+                            <>
+                              <QrCode size={15} />
+                              Mở QR
+                            </>
+                          ) : (
+                            <>
+                              <ClipboardCheck size={15} />
+                              Điểm danh
+                            </>
+                          )}
+                        </Link>
+                      )}
+                      <button
+                        className="btn btn-ghost btn-icon btn-sm"
+                        aria-label="Sửa tên buổi"
+                        title="Sửa tên buổi"
+                        onClick={() => batDauSua(buoi)}
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-icon btn-sm"
+                        aria-label="Xoá buổi"
+                        onClick={() => setToDelete(buoi)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
                   )}
-                  <Link
-                    className="btn btn-secondary btn-sm"
-                    to={`/classes/${cls.id}/sessions/${buoi.id}`}
-                  >
-                    {buoi.status === 'open' ? (
-                      <>
-                        <QrCode size={15} />
-                        Mở QR
-                      </>
-                    ) : (
-                      <>
-                        <ClipboardCheck size={15} />
-                        Điểm danh
-                      </>
-                    )}
-                  </Link>
-                  <button
-                    className="btn btn-ghost btn-icon btn-sm"
-                    aria-label="Xoá buổi"
-                    onClick={() => setToDelete(buoi)}
-                  >
-                    <Trash2 size={16} />
-                  </button>
                 </div>
               );
             })}
@@ -847,37 +947,6 @@ export function TabBuoiHoc({ cls, sessions, stats, onChanged }) {
         )}
       </The>
 
-      {opening && (
-        <HopThoai title="Mở buổi điểm danh" onClose={() => setOpening(false)}>
-          <form className="stack" onSubmit={moBuoiDiemDanh}>
-            <TruongNhap
-              label="Tên buổi (không bắt buộc)"
-              hint={`Để trống sẽ đặt là "Buổi ${sessions.data.length + 1}"`}
-            >
-              <input
-                className="input"
-                autoFocus
-                value={title}
-                onChange={(suKien) => setTitle(suKien.target.value)}
-                placeholder="VD: Chương 3 - Kiến trúc microservices"
-              />
-            </TruongNhap>
-            <div className="row" style={{ justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setOpening(false)}
-              >
-                Huỷ
-              </button>
-              <button className="btn btn-primary" disabled={busy}>
-                <Play size={16} />
-                Bắt đầu
-              </button>
-            </div>
-          </form>
-        </HopThoai>
-      )}
       {toDelete && (
         <HopThoai
           title={`Xoá ${toDelete.title}?`}

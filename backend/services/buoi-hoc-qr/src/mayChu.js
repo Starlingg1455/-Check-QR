@@ -25,6 +25,21 @@ await db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_class ON session_qr.sessions (class_id);
 `);
 
+// Buổi học được tạo sẵn ở trạng thái "planned" (chưa mở) nên opened_at phải cho phép NULL.
+await db.exec('ALTER TABLE session_qr.sessions ALTER COLUMN opened_at DROP NOT NULL');
+
+// Mỗi lớp chỉ có đúng một buổi cho mỗi số thứ tự (tránh tạo trùng khi nhiều người mở cùng lúc).
+try {
+  await db.exec(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_class_no ON session_qr.sessions (class_id, session_no)',
+  );
+} catch (loi) {
+  console.warn(
+    '[session-qr] Không tạo được chỉ mục duy nhất (class_id, session_no):',
+    loi.message,
+  );
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());

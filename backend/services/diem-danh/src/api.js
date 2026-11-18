@@ -275,8 +275,14 @@ export function taoApi(db) {
           title: buoi.title,
           status: buoi.status,
           openedAt: buoi.openedAt,
-          // Buổi còn đang mở mà chưa điểm danh thì chưa tính là vắng
-          attendance: banGhi ? banGhi.status : buoi.status === 'open' ? 'pending' : 'absent',
+          // Buổi chưa diễn ra (planned) hoặc đang mở mà chưa điểm danh thì chưa tính là vắng
+          attendance: banGhi
+            ? banGhi.status
+            : buoi.status === 'closed'
+              ? 'absent'
+              : buoi.status === 'open'
+                ? 'pending'
+                : 'planned',
           checkedAt: banGhi ? banGhi.checked_at : null,
           request: reqBySession.get(buoi.id) || null,
         };
@@ -303,7 +309,8 @@ export function taoApi(db) {
         },
         student: lop.myStudent,
         summary,
-        history: history.reverse(),
+        // Sắp theo số buổi tăng dần để sinh viên thấy buổi sắp tới ngay sau các buổi đã học
+        history,
       });
     },
   );

@@ -27,8 +27,17 @@ export const taiLieuApi = {
           classId: { type: 'integer' },
           sessionNo: { type: 'integer' },
           title: { type: 'string' },
-          status: { type: 'string', enum: ['open', 'closed'] },
-          openedAt: { type: 'string', format: 'date-time' },
+          status: {
+            type: 'string',
+            enum: ['planned', 'open', 'closed'],
+            description: 'planned = buổi tạo sẵn, chưa mở điểm danh',
+          },
+          openedAt: {
+            type: 'string',
+            format: 'date-time',
+            nullable: true,
+            description: 'null khi buổi còn ở trạng thái planned',
+          },
           closedAt: { type: 'string', format: 'date-time', nullable: true },
         },
       },
@@ -61,7 +70,8 @@ export const taiLieuApi = {
       },
       post: {
         tags: ['Buổi học'],
-        summary: 'Mở buổi điểm danh mới (giảng viên). Mỗi lớp chỉ có 1 buổi đang mở.',
+        summary:
+          'Mở buổi điểm danh kế tiếp (buổi đã tạo sẵn nhỏ nhất, hoặc tạo mới nếu đã hết). Mỗi lớp chỉ có 1 buổi đang mở.',
         security: bearer,
         requestBody: {
           required: true,
@@ -98,12 +108,59 @@ export const taiLieuApi = {
           200: { description: 'OK', ...json({ $ref: '#/components/schemas/Session' }) },
         },
       },
+      put: {
+        tags: ['Buổi học'],
+        summary: 'Sửa tên buổi học (giảng viên)',
+        security: bearer,
+        parameters: [idParam],
+        requestBody: {
+          required: true,
+          ...json({
+            type: 'object',
+            required: ['title'],
+            properties: { title: { type: 'string', maxLength: 200 } },
+          }),
+        },
+        responses: {
+          200: { description: 'OK', ...json({ $ref: '#/components/schemas/Session' }) },
+          400: { description: 'Tên buổi trống hoặc quá dài' },
+          403: { description: 'Không phải giảng viên của lớp' },
+        },
+      },
       delete: {
         tags: ['Buổi học'],
         summary: 'Xoá buổi học',
         security: bearer,
         parameters: [idParam],
         responses: { 204: { description: 'Đã xoá' } },
+      },
+    },
+    '/sessions/{id}/open': {
+      post: {
+        tags: ['Buổi học'],
+        summary: 'Mở điểm danh cho buổi đã tạo sẵn (planned)',
+        security: bearer,
+        parameters: [idParam],
+        responses: {
+          200: { description: 'Đã mở', ...json({ $ref: '#/components/schemas/Session' }) },
+          409: { description: 'Lớp đang có buổi khác chưa đóng / buổi đã đóng' },
+        },
+      },
+    },
+    '/sessions/sync': {
+      post: {
+        tags: ['Buổi học'],
+        summary: 'Tạo sẵn đủ số buổi theo cấu hình lớp (giảng viên hoặc dịch vụ tài khoản gọi)',
+        security: bearer,
+        requestBody: {
+          required: true,
+          ...json({
+            type: 'object',
+            required: ['classId'],
+            properties: { classId: { type: 'integer' } },
+          }),
+        },
+        responses: { 200: { description: 'Đã đồng bộ' } },
       },
     },
     '/sessions/{id}/qr': {

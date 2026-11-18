@@ -43,7 +43,43 @@ export function taoApi(db) {
     return rows[0];
   }
 
-  // Giảng viên mở một buổi điểm danh mới
+  // Tạo sẵn đủ số buổi theo cấu hình của lớp (total_sessions).
+  // - Thiếu buổi nào thì thêm buổi đó với tên mặc định "Buổi N", trạng thái "planned".
+  // - Nếu giảng viên giảm tổng số buổi thì dọn các buổi "planned" vượt quá (chưa từng mở,
+  //   nên không có dữ liệu điểm danh).
+  async function baoDamDuBuoi(lop) {
+    const soBuoi = Number(lop.total_sessions) || 0;
+    if (soBuoi < 1) return;
+    await db.query(
+      `DELETE FROM session_qr.sessions
+       WHERE class_id=$1 AND status='planned' AND session_no > $2`,
+      [lop.id, soBuoi],
+    );
+    const daCo = await db.query(
+      'SELECT session_no FROM session_qr.sessions WHERE class_id=$1',
+      [lop.id],
+    );
+    const coRoi = new Set(daCo.map((dong) => dong.session_no));
+    for (let so = 1; so <= soBuoi; so++) {
+      if (coRoi.has(so)) continue;
+      await db.query(
+        `INSERT INTO session_qr.sessions
+           (class_id, session_no, title, status, qr_secret, opened_at, created_by)
+         VALUES ($1,$2,$3,'planned',$4,NULL,$5)
+         ON CONFLICT DO NOTHING`,
+        [
+          lop.id,
+          so,
+          `Buổi ${so}`,
+          randomBytes(16).toString('hex'),
+          lop.teacher_id || 0,
+        ],
+      );
+    }
+  }
+
+  // Giảng viên mở một buổi điểm danh: ưu tiên mở buổi đã tạo sẵn (planned) có số nhỏ nhất.
+  // Nếu lớp đã dùng hết số buổi dự kiến thì tạo thêm một buổi mới (giữ hành vi cũ).
   dinhTuyen.post('/sessions', batBuocDangNhap, batBuocVaiTro('teacher'), async (req, res) => {
     const { classId, title, openedAt } = req.body || {};
     const lop = await layLop(classId, req.token);
@@ -59,38 +95,117 @@ export function taoApi(db) {
         'Lớp đang có một buổi điểm danh chưa đóng. Hãy đóng buổi đó trước.',
       );
 
-    const [{ last }] = await db.query(
-      'SELECT COALESCE(MAX(session_no), 0)::int AS last FROM session_qr.sessions WHERE class_id=$1',
-      [lop.id],
-    );
-    const sessionNo = last + 1;
     const when = openedAt ? new Date(openedAt) : new Date();
     if (Number.isNaN(when.getTime())) throw new LoiHttp(400, 'openedAt không hợp lệ');
+    const tieuDe = String(title || '').trim();
 
-    const rows = await db.query(
-      `INSERT INTO session_qr.sessions (class_id, session_no, title, qr_secret, opened_at, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [
-        lop.id,
-        sessionNo,
-        String(title || '').trim() || `Buổi ${sessionNo}`,
-        randomBytes(16).toString('hex'),
-        when,
-        req.user.id,
-      ],
+    await baoDamDuBuoi(lop);
+    const planned = await db.query(
+      `SELECT * FROM session_qr.sessions
+       WHERE class_id=$1 AND status='planned' ORDER BY session_no LIMIT 1`,
+      [lop.id],
     );
+
+    let rows;
+    if (planned[0]) {
+      rows = await db.query(
+        `UPDATE session_qr.sessions
+         SET status='open', opened_at=$2,
+             title = CASE WHEN $3 = '' THEN title ELSE $3 END
+         WHERE id=$1 RETURNING *`,
+        [planned[0].id, when, tieuDe],
+      );
+    } else {
+      const [{ last }] = await db.query(
+        'SELECT COALESCE(MAX(session_no), 0)::int AS last FROM session_qr.sessions WHERE class_id=$1',
+        [lop.id],
+      );
+      const sessionNo = last + 1;
+      rows = await db.query(
+        `INSERT INTO session_qr.sessions (class_id, session_no, title, qr_secret, opened_at, created_by)
+         VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+        [
+          lop.id,
+          sessionNo,
+          tieuDe || `Buổi ${sessionNo}`,
+          randomBytes(16).toString('hex'),
+          when,
+          req.user.id,
+        ],
+      );
+    }
     res.status(201).json(buoiHocCongKhai(rows[0]));
   });
 
-  // Danh sách buổi học của một lớp (giảng viên hoặc sinh viên của lớp)
+  // Tạo sẵn đủ số buổi cho lớp (dịch vụ tài khoản gọi khi tạo/sửa lớp; giảng viên cũng gọi được)
+  dinhTuyen.post('/sessions/sync', batBuocDangNhap, batBuocVaiTro('teacher'), async (req, res) => {
+    const lop = await layLop(req.body?.classId, req.token);
+    if (!lop.isOwner) throw new LoiHttp(403, 'Chỉ giảng viên của lớp được đồng bộ buổi học');
+    await baoDamDuBuoi(lop);
+    res.json({ ok: true, total: lop.total_sessions });
+  });
+
+  // Danh sách buổi học của một lớp (giảng viên hoặc sinh viên của lớp).
+  // Đồng thời tạo sẵn đủ số buổi theo cấu hình để sinh viên thấy cả lịch và xin vắng trước.
   dinhTuyen.get('/sessions', batBuocDangNhap, async (req, res) => {
     const lop = await layLop(req.query.classId, req.token);
+    await baoDamDuBuoi(lop);
     const rows = await db.query(
       'SELECT * FROM session_qr.sessions WHERE class_id=$1 ORDER BY session_no',
       [lop.id],
     );
     res.json(rows.map(buoiHocCongKhai));
   });
+
+  // Giảng viên sửa tên buổi học (buổi nào cũng sửa được, kể cả đã đóng)
+  dinhTuyen.put(
+    '/sessions/:id',
+    batBuocDangNhap,
+    batBuocVaiTro('teacher'),
+    async (req, res) => {
+      const buoi = await timBuoiHoc(req.params.id);
+      const lop = await layLop(buoi.class_id, req.token);
+      if (!lop.isOwner) throw new LoiHttp(403, 'Chỉ giảng viên của lớp được sửa buổi');
+      const title = String(req.body?.title || '').trim();
+      if (!title) throw new LoiHttp(400, 'Tên buổi không được để trống');
+      if (title.length > 200) throw new LoiHttp(400, 'Tên buổi tối đa 200 ký tự');
+      const rows = await db.query(
+        'UPDATE session_qr.sessions SET title=$1 WHERE id=$2 RETURNING *',
+        [title, buoi.id],
+      );
+      res.json(buoiHocCongKhai(rows[0]));
+    },
+  );
+
+  // Mở điểm danh cho một buổi đã tạo sẵn (planned). Mỗi lớp chỉ có 1 buổi đang mở.
+  dinhTuyen.post(
+    '/sessions/:id/open',
+    batBuocDangNhap,
+    batBuocVaiTro('teacher'),
+    async (req, res) => {
+      const buoi = await timBuoiHoc(req.params.id);
+      const lop = await layLop(buoi.class_id, req.token);
+      if (!lop.isOwner) throw new LoiHttp(403, 'Chỉ giảng viên của lớp được mở buổi');
+      if (buoi.status === 'open') return res.json(buoiHocCongKhai(buoi));
+      if (buoi.status !== 'planned')
+        throw new LoiHttp(409, 'Buổi học đã đóng, không thể mở lại');
+      const open = await db.query(
+        `SELECT id FROM session_qr.sessions WHERE class_id=$1 AND status='open'`,
+        [lop.id],
+      );
+      if (open[0])
+        throw new LoiHttp(
+          409,
+          'Lớp đang có một buổi điểm danh chưa đóng. Hãy đóng buổi đó trước.',
+        );
+      const rows = await db.query(
+        `UPDATE session_qr.sessions SET status='open', opened_at=now()
+         WHERE id=$1 RETURNING *`,
+        [buoi.id],
+      );
+      res.json(buoiHocCongKhai(rows[0]));
+    },
+  );
 
   // Mã QR hiện tại của buổi đang mở (giảng viên gọi mỗi vài giây để làm mới)
   // Đặt trước '/sessions/:id' không cần thiết vì khác đường dẫn, nhưng để cho dễ đọc
@@ -102,6 +217,8 @@ export function taoApi(db) {
       const buoi = await timBuoiHoc(req.params.id);
       const lop = await layLop(buoi.class_id, req.token);
       if (!lop.isOwner) throw new LoiHttp(403, 'Chỉ giảng viên của lớp được xem mã QR');
+      if (buoi.status === 'planned')
+        throw new LoiHttp(409, 'Buổi học chưa mở điểm danh');
       if (buoi.status !== 'open') throw new LoiHttp(409, 'Buổi học đã đóng');
       const slot = khungThoiGian();
       res.json({

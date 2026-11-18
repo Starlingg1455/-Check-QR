@@ -7,6 +7,7 @@ import {
   LoiHttp,
   batBuocDangNhap,
   batBuocVaiTro,
+  goiDichVu,
   kiemTraMatKhau,
   kyToken,
   maHoaMatKhau,
@@ -16,6 +17,9 @@ const teacherEmails = (process.env.TEACHER_EMAILS || '')
   .split(',')
   .map((email) => email.trim().toLowerCase())
   .filter(Boolean);
+
+// Dịch vụ buổi học: nhận yêu cầu tạo sẵn đủ số buổi khi lớp được tạo/sửa.
+const DIA_CHI_BUOI_HOC = process.env.SESSION_URL || 'http://localhost:4002';
 
 export function taoApi(db) {
   const dinhTuyen = Router();
@@ -280,6 +284,18 @@ export function taoApi(db) {
   });
 
   // ---------- Lớp học ----------
+  // Đồng bộ số buổi sang dịch vụ buổi học (chạy nền, không chặn thao tác của giảng viên).
+  // Lỗi mạng không làm hỏng việc tạo/sửa lớp — lần mở tab "Buổi học" sẽ tự đồng bộ lại.
+  function dongBoBuoiHoc(classId, token) {
+    goiDichVu(DIA_CHI_BUOI_HOC, '/sessions/sync', {
+      token,
+      method: 'POST',
+      body: { classId },
+    }).catch((loi) => {
+      console.warn('[account] Không đồng bộ được buổi học:', loi.message);
+    });
+  }
+
   dinhTuyen.get('/classes', batBuocDangNhap, async (req, res) => {
     if (req.user.role === 'teacher') {
       const rows = await db.query(
@@ -327,6 +343,7 @@ export function taoApi(db) {
        VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
       [req.user.id, duLieu.code, duLieu.name, duLieu.room, duLieu.semester, duLieu.total, duLieu.percent],
     );
+    dongBoBuoiHoc(rows[0].id, req.token);
     res.status(201).json({ ...rows[0], student_count: 0 });
   });
 
@@ -342,6 +359,7 @@ export function taoApi(db) {
        WHERE id=$7 RETURNING *`,
       [duLieu.code, duLieu.name, duLieu.room, duLieu.semester, duLieu.total, duLieu.percent, lop.id],
     );
+    dongBoBuoiHoc(rows[0].id, req.token);
     res.json(rows[0]);
   });
 

@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Ban,
+  CalendarDays,
   CheckCircle2,
   ChevronDown,
   Clock,
@@ -49,6 +50,12 @@ export const TRANG_THAI = {
   excused: { label: 'Vắng có phép', icon: ShieldCheck, tone: 'info', cssVar: '--info' },
   absent: { label: 'Vắng', icon: XCircle, tone: 'critical', cssVar: '--critical' },
   pending: { label: 'Chưa điểm danh', icon: Clock, tone: '', cssVar: '--muted' },
+  planned: {
+    label: 'Chưa diễn ra',
+    icon: CalendarDays,
+    tone: '',
+    cssVar: '--muted',
+  },
 };
 export const MUC_CANH_BAO = {
   ok: { label: 'Bình thường', icon: CheckCircle2, tone: 'good', cssVar: '--good' },
