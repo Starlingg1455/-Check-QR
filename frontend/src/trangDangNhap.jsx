@@ -50,14 +50,6 @@ export function TrangDangNhap() {
 
   const chonVaiTro = (vaiTro) => {
     setRole(vaiTro);
-    // Chỉ điền sẵn email demo nếu ô email đang trống hoặc đang là email demo
-    setLoginEmail((truoc) =>
-      !truoc || /^(gv|sv\d+)@demo\.vn$/i.test(truoc)
-        ? vaiTro === 'teacher'
-          ? 'gv@demo.vn'
-          : 'sv01@demo.vn'
-        : truoc,
-    );
   };
 
   // Đăng nhập bằng email + mật khẩu — dùng cho cả giảng viên và sinh viên

@@ -145,6 +145,11 @@ const transporter = process.env.SMTP_HOST
       auth: process.env.SMTP_USER
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
         : undefined,
+      // Trên Render free tier, kết nối ra SMTP gmail thỉnh thoảng bị chậm/timeout.
+      // Đặt thời hạn ngắn để thất bại nhanh và bấm vào cơ chế thử lại bên dưới.
+      connectionTimeout: 20_000,
+      greetingTimeout: 20_000,
+      socketTimeout: 30_000,
     })
   : null;
 
@@ -156,15 +161,26 @@ export async function guiMail({ to, subject, html }) {
     console.log(`[mail - chưa cấu hình SMTP] Gửi tới ${to}: ${subject}`);
     return { status: 'logged', detail: 'Chưa cấu hình SMTP nên chỉ ghi log' };
   }
-  try {
-    await transporter.sendMail({
-      from: process.env.MAIL_FROM || process.env.SMTP_USER,
-      to,
-      subject,
-      html,
-    });
-    return { status: 'sent', detail: 'Đã gửi' };
-  } catch (loi) {
-    return { status: 'failed', detail: String(loi.message || loi).slice(0, 300) };
+  // Kết nối SMTP trên cloud thỉnh thoảng "Connection timeout" — thử lại tối đa 3 lần
+  const soLanThu = 3;
+  let loiCuoi;
+  for (let lan = 1; lan <= soLanThu; lan++) {
+    try {
+      await transporter.sendMail({
+        from: process.env.MAIL_FROM || process.env.SMTP_USER,
+        to,
+        subject,
+        html,
+      });
+      return {
+        status: 'sent',
+        detail: lan > 1 ? `Đã gửi (sau khi thử lại lần ${lan})` : 'Đã gửi',
+      };
+    } catch (loi) {
+      loiCuoi = loi;
+      console.log(`[mail] Gửi tới ${to} thất bại lần ${lan}/${soLanThu}: ${loi.message}`);
+      if (lan < soLanThu) await new Promise((giay) => setTimeout(giay, lan * 3000));
+    }
   }
+  return { status: 'failed', detail: String(loiCuoi.message || loiCuoi).slice(0, 300) };
 }

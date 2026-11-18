@@ -153,7 +153,7 @@ export function NhaCungCapCoChu({ children }) {
         total,
         enabled: width >= 1000,
         bigger: () => change(BUOC_CHINH),
-        smaller: () => change(-STEP),
+        smaller: () => change(-BUOC_CHINH),
         reset: () => change(1 - factor),
       }}
     >

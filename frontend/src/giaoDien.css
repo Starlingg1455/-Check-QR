@@ -1176,7 +1176,7 @@ td.right {
 }
 .qr-stage {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -1191,6 +1191,9 @@ td.right {
 }
 .qr-frame {
   position: relative;
+  /* Đặt bề rộng tối đa = 360 (mã QR) + 32 (padding) + 2 (viền) để khung trắng
+     luôn là hình vuông ôm khít mã QR, không giãn hết chiều ngang cột */
+  width: min(100%, 394px);
   padding: 16px;
   background: #fff;
   border-radius: 20px;
@@ -1213,6 +1216,10 @@ td.right {
   justify-content: center;
   background: var(--bg);
   gap: 28px;
+}
+.qr-panel:fullscreen .qr-frame {
+  /* Toàn màn hình: khung trắng ôm theo mã QR phóng to */
+  width: min(100%, calc(min(70vh, 80vw) + 34px));
 }
 .qr-panel:fullscreen .qr-frame canvas {
   width: min(70vh, 80vw) !important;
